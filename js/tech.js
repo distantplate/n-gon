@@ -10418,6 +10418,50 @@ const tech = {
         }
     },
     {
+        name: "secondary batteries",
+        description: "<strong>store</strong> excess <strong class='color-f'>energy</strong> to briefly <strong class='color-plasma'>amplify</strong> your <strong class='color-plasma'>plasma</strong> <strong>torch</strong>",
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 2,
+        frequencyDefault: 2,
+        allowed() {
+            return m.fieldMode === 5 && !tech.isExtruder && !tech.isPlasmaBall
+        },
+        requires: "plasma torch, not extruder, not plasma ball",
+        effect() {
+            tech.isPlasmaLance = true;
+            m.fieldUpgrades[m.fieldMode].set()
+        },
+        remove() {
+            tech.isPlasmaLance = false;
+            if (this.count && m.fieldMode === 5) m.fieldUpgrades[m.fieldMode].set()
+        }
+    },
+    {
+        name: "solar flare",
+        description: `use ${powerUps.orb.research(1)} to <strong>significantly</strong> improve <strong class='color-plasma'>plasma</strong> <strong>torch</strong> while <strong class='color-plasma'>amplified</strong>`,
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 2,
+        frequencyDefault: 2,
+        allowed() {
+            return m.fieldMode === 5 && tech.isPlasmaLance && (build.isExperimentSelection || powerUps.research.count > 0)
+        },
+        requires: "plasma torch, secondary batteries",
+        effect() {
+            tech.isPlasmaSupercharge = true;
+            for (let i = 0; i < 1; i++) {
+                if (powerUps.research.count > 0) powerUps.research.changeRerolls(-1)
+            }
+        },
+        remove() {
+            tech.isPlasmaSupercharge = false;
+            if (this.count > 0) powerUps.research.changeRerolls(this.count)
+        }
+    },
+    {
         name: "extruder",
         description: "<strong>extrude</strong> a thin hot wire of <strong class='color-plasma'>plasma</strong><br>increases <strong class='color-d'>damage</strong> and <strong class='color-f'>energy</strong> cost",
         isFieldTech: true,
@@ -14159,6 +14203,7 @@ const tech = {
     // isDeathAvoid: null,
     // isDeathAvoidedThisLevel: null,
     // isPlasmaRange: null,
+    // isPlasmaSupercharge: null,
     // isFreezeMobs: null,
     // isIceCrystals: null,
     // blockDamage: null,
@@ -14399,6 +14444,7 @@ const tech = {
     // isDronesTravel: null,
     // isTechDebt: null,
     // isPlasmaBall: null,
+    // isPlasmaLance: null,
     // plasmaDischarge: null,
     // missileFireCD: null,
     // isBotField: null,
