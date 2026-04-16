@@ -10419,7 +10419,7 @@ const tech = {
     },
     {
         name: "secondary batteries",
-        description: "<strong>store</strong> excess <strong class='color-f'>energy</strong> to briefly <strong class='color-plasma'>amplify</strong> your <strong class='color-plasma'>plasma</strong> <strong>torch</strong>",
+        description: "<strong>store</strong> excess <strong class='color-f'>energy</strong><br>to briefly <strong class='color-plasma'>amplify</strong> your <strong class='color-plasma'>plasma</strong> <strong>torch</strong>",
         isFieldTech: true,
         maxCount: 1,
         count: 0,
@@ -10440,7 +10440,7 @@ const tech = {
     },
     {
         name: "solar flare",
-        description: `use ${powerUps.orb.research(1)} to <strong>significantly</strong> improve <strong class='color-plasma'>plasma</strong> <strong>torch</strong> while <strong class='color-plasma'>amplified</strong>`,
+        description: `<strong>significantly</strong> improve <strong class='color-plasma'>plasma</strong> <strong>torch</strong><br>while <strong class='color-plasma'>amplified</strong><span style ="float: right;"><span class="underline">expend</span> ${powerUps.orb.research(1)}</span>`,
         isFieldTech: true,
         maxCount: 1,
         count: 0,
@@ -10452,6 +10452,8 @@ const tech = {
         requires: "plasma torch, secondary batteries",
         effect() {
             tech.isPlasmaSupercharge = true;
+            tech.isOverHeal = true;
+            tech.tooManyTechChoices = true;
             for (let i = 0; i < 1; i++) {
                 if (powerUps.research.count > 0) powerUps.research.changeRerolls(-1)
             }
