@@ -10431,6 +10431,7 @@ const tech = {
         requires: "plasma torch, not extruder, not plasma ball",
         effect() {
             tech.isPlasmaLance = true;
+            tech.tooManyTechChoices = 1;
             m.fieldUpgrades[m.fieldMode].set()
         },
         remove() {
@@ -10453,7 +10454,7 @@ const tech = {
         effect() {
             tech.isPlasmaSupercharge = true;
             tech.isOverHeal = true;
-            tech.tooManyTechChoices = true;
+            tech.tooManyTechChoices = 1;
             for (let i = 0; i < 1; i++) {
                 if (powerUps.research.count > 0) powerUps.research.changeRerolls(-1)
             }
@@ -10461,6 +10462,29 @@ const tech = {
         remove() {
             tech.isPlasmaSupercharge = false;
             if (this.count > 0) powerUps.research.changeRerolls(this.count)
+        }
+    },
+    {
+        name: "anomaly",
+        description: `wildly unbalanced`,
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 4,
+        allowed() {
+            return m.fieldMode === 5
+        },
+        requires: "plasma torch",
+        effect() {
+            tech.isPlasmaLance = true;
+            tech.isPlasmaSupercharge = true;
+            tech.isOverHeal = true;
+            tech.tooManyTechChoices = 1;
+        },
+        remove() {
+            if (tech.isPlasmaLance) {tech.isPlasmaLance = false;}
+            if (tech.isPlasmaSupercharge) {tech.isPlasmaSupercharge = false;}
+            if (tech.isOverHeal) {tech.isOverHeal = false;}
         }
     },
     {
@@ -14204,6 +14228,7 @@ const tech = {
     // isEnergyLoss: null,
     // isDeathAvoid: null,
     // isDeathAvoidedThisLevel: null,
+    // balanceBreaker: null,
     // isPlasmaRange: null,
     // isPlasmaSupercharge: null,
     // isFreezeMobs: null,
