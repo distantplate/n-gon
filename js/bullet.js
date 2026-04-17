@@ -2438,7 +2438,7 @@ const b = {
                 path[path.length - 1] = { x: best.x, y: best.y };
                 if (best.who.alive) {
                     const dmg = 0.9; //********** SCALE DAMAGE HERE *********************
-                    best.who.damage(dmg);
+                    best.who.damage(dmg*(1+chargeScale));
                     best.who.locatePlayer();
 
                     //push mobs away
@@ -2455,7 +2455,7 @@ const b = {
                     simulation.drawList.push({
                         x: path[1].x,
                         y: path[1].y,
-                        radius: Math.sqrt(2000 * dmg * best.who.damageReduction),
+                        radius: Math.sqrt(2000 * dmg * (1+chargeScale) * best.who.damageReduction),
                         color: colorVal.concat("0.2)"),
                         time: simulation.drawTime * 4
                     });
@@ -2492,6 +2492,9 @@ const b = {
             }
             ctx.lineWidth = 2 * Math.random();
             ctx.stroke();
+        }
+        if (m.lanceCharge > 0) {
+            m.lanceCharge -= 0.00075
         }
     },
     laser(where = {
