@@ -2417,7 +2417,7 @@ const b = {
             }
 
             //calculate laser collision
-            let range = (tech.isPlasmaRange + chargeScale) * (120 + (m.crouch ? 400 : 300) * Math.sqrt(Math.random())) //+ 100 * Math.sin(m.cycle * 0.3);
+            let range = (tech.isPlasmaRange + chargeScale) * (120 + (m.crouch ? (tech.isPlasmaRadiation ? 500 : 400) : 300) * Math.sqrt(Math.random())) //+ 100 * Math.sin(m.cycle * 0.3);
             // const dir = m.angle // + 0.04 * (Math.random() - 0.5)
             const r = 20 * player.scale
             const path = [
@@ -2439,6 +2439,7 @@ const b = {
                 if (best.who.alive) {
                     const dmg = 0.9; //********** SCALE DAMAGE HERE *********************
                     best.who.damage(dmg*(1+chargeScale));
+                    if (tech.isPlasmaRadiation) {mobs.statusDoT(best.who, 1, 300);}
                     best.who.locatePlayer();
 
                     //push mobs away
