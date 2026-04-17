@@ -6067,7 +6067,7 @@ const m = {
                             ctx.beginPath();
                             ctx.lineWidth = 5;
                             let chargeLevel = m.lanceCharge * 1275;
-                            let colorVal = (tech.isPlasmaLance ? "rgb(255,".concat(Math.min(136,chargeLevel),",",(255-Math.min((chargeLevel*2),255)),")") : "rgb(255,0,255)");
+                            let colorVal = (tech.isPlasmaSupercharge ? "rgb(255,".concat(Math.min(136,chargeLevel),",",(255-Math.min((chargeLevel*2),255)),")") : "rgb(255,0,255)");
                             ctx.strokeStyle = colorVal;
                             ctx.arc(m.pos.x, m.pos.y, 4.2*Math.sqrt(50), m.angle, (m.lanceCharge*10*Math.PI)+m.angle);
                             ctx.stroke();
