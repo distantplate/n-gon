@@ -10466,7 +10466,7 @@ const tech = {
     },
     {
         name: "gamma ray burst",
-        description: `increased <strong class='color-plasma'>plasma</strong> <strong>torch</strong> range while crouching<br>and <strong class='color-p'>irradiates</strong> mobs`,
+        description: `increased <strong class='color-plasma'>plasma</strong> <strong>torch</strong> range while crouching<br><strong class='color-plasma'>plasma</strong> <strong>torch</strong> <strong class='color-p'>irradiates</strong> mobs`,
         isFieldTech: true,
         maxCount: 1,
         count: 0,
