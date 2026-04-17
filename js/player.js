@@ -628,6 +628,7 @@ const m = {
     damageReduction: 1,
     defense() {
         let dmg = m.damageReduction * powerUps.difficulty.damageReduction
+        if (tech.balanceBreaker) dmg *= 0;
         if (tech.energyDefense && m.energy > 1.99) dmg *= 0.1
         if (powerUps.boost.isDefense && powerUps.boost.endCycle > simulation.cycle) dmg *= 0.3
         if (tech.isMaxHealthDefense && (m.health === m.maxHealth || (tech.isEnergyHealth && m.energy > m.maxEnergy - 0.01))) dmg *= 0.1
@@ -656,7 +657,6 @@ const m = {
             dmg *= tech.mineralDamageReduction
         }
         if (tech.isInPilot && m.fieldOn && Vector.magnitude(Vector.sub(m.fieldPosition, m.pos)) < m.fieldRadius + 100) dmg *= 0.25
-        if (tech.balanceBreaker) dmg *= 0
         // return tech.isEnergyHealth ? Math.pow(dmg, 0.7) : dmg //defense has less effect
         // dmg *= m.fieldHarmReduction
         return dmg * m.fieldHarmReduction
