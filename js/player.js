@@ -656,6 +656,7 @@ const m = {
             dmg *= tech.mineralDamageReduction
         }
         if (tech.isInPilot && m.fieldOn && Vector.magnitude(Vector.sub(m.fieldPosition, m.pos)) < m.fieldRadius + 100) dmg *= 0.25
+        if (tech.balanceBreaker) dmg *= 0
         // return tech.isEnergyHealth ? Math.pow(dmg, 0.7) : dmg //defense has less effect
         // dmg *= m.fieldHarmReduction
         return dmg * m.fieldHarmReduction
