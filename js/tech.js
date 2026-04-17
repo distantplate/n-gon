@@ -10476,12 +10476,14 @@ const tech = {
         },
         requires: "plasma torch",
         effect() {
+            tech.balanceBreaker = true;
             tech.isPlasmaLance = true;
             tech.isPlasmaSupercharge = true;
             tech.isOverHeal = true;
             tech.tooManyTechChoices = 1;
         },
         remove() {
+            tech.balanceBreaker = false;
             if (tech.isPlasmaLance) {tech.isPlasmaLance = false;}
             if (tech.isPlasmaSupercharge) {tech.isPlasmaSupercharge = false;}
             if (tech.isOverHeal) {tech.isOverHeal = false;}
