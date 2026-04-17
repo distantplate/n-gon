@@ -10450,7 +10450,7 @@ const tech = {
         allowed() {
             return m.fieldMode === 5 && tech.isPlasmaLance && (build.isExperimentSelection || powerUps.research.count > 0)
         },
-        requires: "plasma torch, secondary batteries",
+        requires: "secondary batteries",
         effect() {
             tech.isPlasmaSupercharge = true;
             tech.isOverHeal = true;
@@ -10475,7 +10475,7 @@ const tech = {
         allowed() {
             return m.fieldMode === 5 && tech.isPlasmaLance && tech.isPlasmaSupercharge
         },
-        requires: "plasma torch, secondary batteries, solar flare",
+        requires: "solar flare",
         effect() {
             tech.isPlasmaRadiation = true;
         },
