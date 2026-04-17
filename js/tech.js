@@ -10465,6 +10465,25 @@ const tech = {
         }
     },
     {
+        name: "gamma ray burst",
+        description: `increased <strong class='color-plasma'>plasma</strong> <strong>torch</strong> range while crouching<br>and <strong class='color-p'>irradiates</strong> mobs`,
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 2,
+        frequencyDefault: 2,
+        allowed() {
+            return m.fieldMode === 5 && tech.isPlasmaLance && tech.isPlasmaSupercharge
+        },
+        requires: "plasma torch, secondary batteries, solar flare",
+        effect() {
+            tech.isPlasmaRadiation = true;
+        },
+        remove() {
+            tech.isPlasmaRadiation = false;
+        }
+    },
+    {
         name: "anomaly",
         description: `wildly unbalanced`,
         isFieldTech: true,
@@ -10479,14 +10498,12 @@ const tech = {
             tech.balanceBreaker = true;
             tech.isPlasmaLance = true;
             tech.isPlasmaSupercharge = true;
-            tech.isOverHeal = true;
             tech.tooManyTechChoices = 1;
         },
         remove() {
             tech.balanceBreaker = false;
             if (tech.isPlasmaLance) {tech.isPlasmaLance = false;}
             if (tech.isPlasmaSupercharge) {tech.isPlasmaSupercharge = false;}
-            if (tech.isOverHeal) {tech.isOverHeal = false;}
         }
     },
     {
@@ -14233,6 +14250,7 @@ const tech = {
     // balanceBreaker: null,
     // isPlasmaRange: null,
     // isPlasmaSupercharge: null,
+    // isPlasmaRadiation: null,
     // isFreezeMobs: null,
     // isIceCrystals: null,
     // blockDamage: null,
