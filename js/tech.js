@@ -10498,12 +10498,14 @@ const tech = {
             tech.balanceBreaker = true;
             tech.isPlasmaLance = true;
             tech.isPlasmaSupercharge = true;
+            tech.isPlasmaRadiation = true;
             tech.tooManyTechChoices = 1;
         },
         remove() {
             tech.balanceBreaker = false;
             if (tech.isPlasmaLance) {tech.isPlasmaLance = false;}
             if (tech.isPlasmaSupercharge) {tech.isPlasmaSupercharge = false;}
+            if (tech.isPlasmaRadiation) {tech.isPlasmaRadiation = false;}
         }
     },
     {
