@@ -2406,14 +2406,18 @@ const b = {
     plasma() {
         const DRAIN = 0.00075
         if (m.energy > DRAIN) {
+            let supercharge = (tech.isPlasmaSupercharge ? 4 : 1);
+            let chargeLevel = m.lanceCharge*1275;
+            let colorVal = (tech.isPlasmaSupercharge && m.lanceCharge ? "rgba(".concat("255,",Math.min(136,chargeLevel),",",(255-Math.min((chargeLevel*2),255)),",") : "rgba(255,0,255,");
             m.energy -= DRAIN;
+            let chargeScale = (m.lanceCharge ? Math.min(m.lanceCharge*5*supercharge,2) : 0);
             if (m.energy < 0) {
                 m.fieldCDcycle = m.cycle + 120;
                 m.energy = 0;
             }
 
             //calculate laser collision
-            let range = tech.isPlasmaRange * (120 + (m.crouch ? 400 : 300) * Math.sqrt(Math.random())) //+ 100 * Math.sin(m.cycle * 0.3);
+            let range = (tech.isPlasmaRange + chargeScale) * (120 + (m.crouch ? 400 : 300) * Math.sqrt(Math.random())) //+ 100 * Math.sin(m.cycle * 0.3);
             // const dir = m.angle // + 0.04 * (Math.random() - 0.5)
             const r = 20 * player.scale
             const path = [
@@ -2452,7 +2456,7 @@ const b = {
                         x: path[1].x,
                         y: path[1].y,
                         radius: Math.sqrt(2000 * dmg * best.who.damageReduction),
-                        color: "rgba(255,0,255,0.2)",
+                        color: colorVal.concat("0.2)"),
                         time: simulation.drawTime * 4
                     });
                 } else if (!best.who.isStatic) {
@@ -2463,14 +2467,14 @@ const b = {
             }
 
             //draw blowtorch laser beam
-            ctx.strokeStyle = "rgba(255,0,255,0.1)"
-            ctx.lineWidth = 14
+            ctx.strokeStyle = colorVal.concat("0.1)");
+            ctx.lineWidth = 14*(1+chargeScale);
             ctx.beginPath();
             ctx.moveTo(path[0].x, path[0].y);
             ctx.lineTo(path[1].x, path[1].y);
             ctx.stroke();
-            ctx.strokeStyle = "#f0f";
-            ctx.lineWidth = 2
+            ctx.strokeStyle = colorVal.concat("1)");
+            ctx.lineWidth = 2*(1+chargeScale);
             ctx.stroke();
 
             //draw electricity
