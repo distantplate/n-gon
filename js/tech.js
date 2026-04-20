@@ -10493,10 +10493,10 @@ const tech = {
         requires: "plasma torch",
         effect() {
             tech.balanceBreaker = true;
-            tech.giveTech("secondary batteries");
-            tech.giveTech("solar flare");
-            tech.giveTech("gamma ray burst");
-            tech.giveTech("mass production");
+            if (!tech.isPlasmaLance) {tech.giveTech("secondary batteries");}
+            if (!tech.isPlasmaSupercharge) {tech.giveTech("solar flare");}
+            if (!tech.isPlasmaRadiation) {tech.giveTech("gamma ray burst");}
+            if (!tech.isMassProduction) {tech.giveTech("mass production");}
         },
         remove() {
             tech.balanceBreaker = false;
