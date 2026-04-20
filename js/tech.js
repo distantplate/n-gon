@@ -10470,9 +10470,9 @@ const tech = {
         frequency: 2,
         frequencyDefault: 2,
         allowed() {
-            return m.fieldMode === 5 && tech.isPlasmaLance
+            return m.fieldMode === 5 && !tech.isExtruder && !tech.isPlasmaBall
         },
-        requires: "secondary batteries",
+        requires: "plasma torch, not plasma ball, not extruder",
         effect() {
             tech.isPlasmaRadiation = true;
         },
