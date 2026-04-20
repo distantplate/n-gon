@@ -2439,7 +2439,7 @@ const b = {
                 if (best.who.alive) {
                     const dmg = 0.9; //********** SCALE DAMAGE HERE *********************
                     best.who.damage(dmg*(1+chargeScale));
-                    if (tech.isPlasmaRadiation && m.crouch) {mobs.statusDoT(best.who, 1, 60);}
+                    if (tech.isPlasmaRadiation && m.crouch) {mobs.statusDoT(best.who, 1 + (chargeScale / 2), 60 + (chargeScale >= 2 ? 30 : 0));}
                     best.who.locatePlayer();
 
                     //push mobs away
