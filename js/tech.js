@@ -10431,7 +10431,6 @@ const tech = {
         requires: "plasma torch, not extruder, not plasma ball",
         effect() {
             tech.isPlasmaLance = true;
-            tech.tooManyTechChoices = 1;
             m.fieldUpgrades[m.fieldMode].set()
         },
         remove() {
@@ -10453,8 +10452,6 @@ const tech = {
         requires: "secondary batteries",
         effect() {
             tech.isPlasmaSupercharge = true;
-            tech.isOverHeal = true;
-            tech.tooManyTechChoices = 1;
             for (let i = 0; i < 1; i++) {
                 if (powerUps.research.count > 0) powerUps.research.changeRerolls(-1)
             }
@@ -10496,16 +10493,13 @@ const tech = {
         requires: "plasma torch",
         effect() {
             tech.balanceBreaker = true;
-            tech.isPlasmaLance = true;
-            tech.isPlasmaSupercharge = true;
-            tech.isPlasmaRadiation = true;
-            tech.tooManyTechChoices = 1;
+            tech.giveTech("secondary batteries");
+            tech.giveTech("solar flare");
+            tech.giveTech("gamma ray burst");
+            tech.giveTech("mass production");
         },
         remove() {
             tech.balanceBreaker = false;
-            if (tech.isPlasmaLance) {tech.isPlasmaLance = false;}
-            if (tech.isPlasmaSupercharge) {tech.isPlasmaSupercharge = false;}
-            if (tech.isPlasmaRadiation) {tech.isPlasmaRadiation = false;}
         }
     },
     {
