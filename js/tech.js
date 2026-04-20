@@ -10463,7 +10463,7 @@ const tech = {
     },
     {
         name: "LINAC",
-        description: `if <strong>crouched</strong>, <strong class='color-plasma'>plasma</strong> <strong>torch</strong> drains <strong>2x</strong> <strong class='color-f'>energy</strong>, but gains`,
+        description: `if <strong>crouched</strong>, <strong class='color-plasma'>plasma</strong> <strong>torch</strong> drains <strong>2x</strong> <strong class='color-f'>energy</strong><br>but gains increased range and <strong class='color-p'>irradiates</strong> mobs`,
         isFieldTech: true,
         maxCount: 1,
         count: 0,
