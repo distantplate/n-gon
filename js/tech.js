@@ -10462,17 +10462,17 @@ const tech = {
         }
     },
     {
-        name: "gamma ray burst",
-        description: `increased <strong class='color-plasma'>plasma</strong> <strong>torch</strong> range while crouching<br><strong class='color-plasma'>plasma</strong> <strong>torch</strong> <strong class='color-p'>irradiates</strong> mobs`,
+        name: "LINAC",
+        description: `<strong class='color-plasma'>plasma</strong> <strong>torch</strong> drains <strong>2x</strong> <strong class='color-f'>energy</strong> while <strong>crouched</strong><br>`,
         isFieldTech: true,
         maxCount: 1,
         count: 0,
         frequency: 2,
         frequencyDefault: 2,
         allowed() {
-            return m.fieldMode === 5 && tech.isPlasmaLance && tech.isPlasmaSupercharge
+            return m.fieldMode === 5 && tech.isPlasmaLance
         },
-        requires: "solar flare",
+        requires: "secondary batteries",
         effect() {
             tech.isPlasmaRadiation = true;
         },
@@ -10495,7 +10495,7 @@ const tech = {
             tech.balanceBreaker = true;
             if (!tech.isPlasmaLance) {tech.giveTech("secondary batteries");}
             if (!tech.isPlasmaSupercharge) {tech.giveTech("solar flare");}
-            if (!tech.isPlasmaRadiation) {tech.giveTech("gamma ray burst");}
+            if (!tech.isPlasmaRadiation) {tech.giveTech("LINAC");}
             if (!tech.isMassProduction) {tech.giveTech("mass production");}
         },
         remove() {
