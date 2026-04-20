@@ -2409,7 +2409,7 @@ const b = {
             let supercharge = (tech.isPlasmaSupercharge ? 4 : 1);
             let chargeLevel = m.lanceCharge*1275;
             let colorVal = (tech.isPlasmaSupercharge && m.lanceCharge ? "rgba(".concat("255,",Math.min(136,chargeLevel),",",(255-Math.min((chargeLevel*2),255)),",") : "rgba(255,0,255,");
-            m.energy -= DRAIN * ((tech.isPlasmaRadiation && m.crouch) ? 2 : 1);
+            m.energy -= DRAIN * ((tech.isPlasmaRadiation && m.crouch) ? 5 : 1);
             let chargeScale = (m.lanceCharge ? Math.min(m.lanceCharge*5*supercharge,2) : 0);
             if (m.energy < 0) {
                 m.fieldCDcycle = m.cycle + 120;
