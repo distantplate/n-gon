@@ -10431,11 +10431,9 @@ const tech = {
         requires: "plasma torch, not extruder, not plasma ball",
         effect() {
             tech.isPlasmaLance = true;
-            m.fieldUpgrades[m.fieldMode].set()
         },
         remove() {
             tech.isPlasmaLance = false;
-            if (this.count && m.fieldMode === 5) m.fieldUpgrades[m.fieldMode].set()
         }
     },
     {
