@@ -3143,7 +3143,7 @@ const tech = {
         isBadRandomOption: true,
         numberOfGunsLost: 0,
         allowed() {
-            return b.totalBots() > 3 //&& !build.isExperimentSelection
+            return b.totalBots() > 3 && !build.isExperimentSelection
         },
         requires: "NOT EXPERIMENT MODE, at least 4 bots",
         effect() {
@@ -12004,6 +12004,7 @@ const tech = {
         effect() {
             tech.plasmaBotCount++;
             b.plasmaBot();
+            b.convertBotsTo("plasma-bot");
             if (build.isExperimentSelection) {
                 document.getElementById("field-" + m.fieldMode).classList.remove("build-field-selected");
                 document.getElementById("field-0").classList.add("build-field-selected");
