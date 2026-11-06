@@ -12005,6 +12005,7 @@ const tech = {
             tech.plasmaBotCount++;
             b.plasmaBot();
             b.convertBotsTo("plasma-bot");
+            //please for the love of god work
             if (build.isExperimentSelection) {
                 document.getElementById("field-" + m.fieldMode).classList.remove("build-field-selected");
                 document.getElementById("field-0").classList.add("build-field-selected");
