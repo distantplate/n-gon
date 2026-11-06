@@ -3181,7 +3181,6 @@ const tech = {
             tech.missileBotCount *= 2
         },
         remove() {
-            this.effect();
             // if (this.count) {
             //     //return guns
             //     for (let i = 0; i < this.numberOfGunsLost; i++) powerUps.spawn(m.pos.x + 60 * (Math.random() - 0.5), m.pos.y + 60 * (Math.random() - 0.5), "gun");
