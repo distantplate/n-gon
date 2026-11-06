@@ -12003,8 +12003,8 @@ const tech = {
         requires: "plasma torch, not plasma ball, refractory metal, electric potential, dielectric",
         effect() {
             tech.plasmaBotCount++;
-            b.plasmaBot();
             b.convertBotsTo("plasma-bot");
+            b.plasmaBot();
             //please for the love of god work
             if (build.isExperimentSelection) {
                 document.getElementById("field-" + m.fieldMode).classList.remove("build-field-selected");
