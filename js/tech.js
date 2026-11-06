@@ -3143,7 +3143,7 @@ const tech = {
         isBadRandomOption: true,
         numberOfGunsLost: 0,
         allowed() {
-            return b.totalBots() > 3 && !build.isExperimentSelection
+            return b.totalBots() > 3 //&& !build.isExperimentSelection
         },
         requires: "NOT EXPERIMENT MODE, at least 4 bots",
         effect() {
