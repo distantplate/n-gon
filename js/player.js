@@ -5825,7 +5825,7 @@ const m = {
                         setPositionToNose() {
                             const r = 27 * player.scale
                             const unit = { x: Math.cos(m.angle), y: Math.sin(m.angle) }
-                            Matter.Body.setPosition(this, Vector.add(m.pos, Vector.mult(unit, r + 2 * this.circleRadius)));
+                            Matter.Body.setPosition(this, Vector.add(m.pos, Vector.mult(unit, r + 2 * this.circleRadius * (tech.isPlasmaBlast ? 0.3 : 1))));
                         },
                         fitToMap() { //pull the ball back toward the player until its center is out of the map, so aiming it into the floor squishes it instead
                             const dx = this.position.x - m.pos.x
@@ -6348,7 +6348,7 @@ const m = {
                         },
                         do() {
                             if (this.isOn) {
-                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange)
+                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange) * (tech.isPlasmaBlast ? 0.3 : 1)
                                 const solitonTarget = tech.isSoliton && !(this.solitonCycle > simulation.cycle) && this.isSolitonInReach() //skip looking for mobs while the burst is cooling down
                                 if (solitonTarget) {
                                     const bonus = b.solitonReady(this, b.solitonCost, 0.01) //each excess energy adds 0.01x
@@ -6648,7 +6648,7 @@ const m = {
 
                                     }
                                 } else if (m.energy > m.plasmaBall.drain) { //charge up when attached
-                                    const grow = m.plasmaBall.growRate * (tech.isPlasmaBlast ? 0.3 : 1) * Math.max(0.5, 1 - m.plasmaBall.pressedGrowth * m.plasmaBall.pressed) * Math.min(1, Math.max(0, (m.plasmaBall.squeezeStop - m.plasmaBall.squeezed) / (m.plasmaBall.squeezeStop - m.plasmaBall.squeezeFree))) //squished into the map it grows slower, and squeezed into a small space it stops
+                                    const grow = m.plasmaBall.growRate * Math.max(0.5, 1 - m.plasmaBall.pressedGrowth * m.plasmaBall.pressed) * Math.min(1, Math.max(0, (m.plasmaBall.squeezeStop - m.plasmaBall.squeezed) / (m.plasmaBall.squeezeStop - m.plasmaBall.squeezeFree))) //squished into the map it grows slower, and squeezed into a small space it stops
                                     if (tech.isCapacitor) {
                                         m.energy -= m.plasmaBall.drain * 2;
                                         const scale = 1 + 3 * grow * Math.pow(Math.max(1, m.plasmaBall.circleRadius), -1.8)
