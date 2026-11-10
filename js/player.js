@@ -6575,10 +6575,9 @@ const m = {
                                 do() {
                                     //grow and fade
                                     this.count++
-                                    const blast = 1 + 9*(1-this.alpha)
+                                    const blast = (1 + 9*(1-this.alpha)) * Math.pow(rate,this.count)
                                     if (tech.isPlasmaBlast) {
-                                        this.size = Math.pow(rate,this.count)
-                                        this.size *= blast
+                                        this.size = blast
                                     } else {this.size *= rate}
                                     this.alpha -= fade
                                     if (this.alpha < 0) {
