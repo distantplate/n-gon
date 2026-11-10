@@ -12284,6 +12284,25 @@ const tech = {
         }
     },
     {
+        name: "plasma burst",
+        description: "<strong>0.3x</strong> <strong class='color-plasma' data-help='plasma'>plasma</strong> ball radius<br><strong class='color-plasma' data-help='plasma'>plasma</strong> ball expands massively when it <strong>pops</strong>",
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 2,
+        frequencyDefault: 2,
+        allowed() {
+            return m.fieldMode === 5 && tech.isPlasmaBall && !tech.isPlasmaRing
+        },
+        requires: "plasma ball, not plasma ring",
+        effect() {
+            tech.isPlasmaBlast = true
+        },
+        remove() {
+            tech.isPlasmaBlast= false;
+        }
+    },
+    {
         name: "plasma ring",
         link: `<a target="_blank" href='https://en.wikipedia.org/wiki/Vortex_ring' class="link">plasma ring</a>`,
         description: "a <strong>bouncing</strong>, spinning <strong>loop</strong> of <strong class='color-plasma' data-help='plasma'>plasma</strong><br><strong>2x</strong> <strong class='color-d' data-help='damage'>damage</strong>, but only along the loop",
