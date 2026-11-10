@@ -6575,9 +6575,11 @@ const m = {
                                 do() {
                                     //grow and fade
                                     this.count++
-                                    const blast = 1 + 2 * (this.alpha) //* Math.pow(rate,this.count)
+                                    //for whatever reason, the code will not allow me to multiply this.alpha
+
+                                    const blast = (2 - this.alpha) //* Math.pow(rate,this.count)
                                     if (tech.isPlasmaBlast) {
-                                        this.size = blast
+                                        this.size = (tech.soundBotCount + 1) * blast
                                     } else {this.size *= rate}
                                     this.alpha -= fade
                                     if (this.alpha < 0) {
