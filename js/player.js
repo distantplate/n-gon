@@ -6348,7 +6348,7 @@ const m = {
                         },
                         do() {
                             if (this.isOn) {
-                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange) * (tech.isPlasmaBlast ? 0.3 : 1)
+                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange)
                                 const solitonTarget = tech.isSoliton && !(this.solitonCycle > simulation.cycle) && this.isSolitonInReach() //skip looking for mobs while the burst is cooling down
                                 if (solitonTarget) {
                                     const bonus = b.solitonReady(this, b.solitonCost, 0.01) //each excess energy adds 0.01x
@@ -6547,7 +6547,7 @@ const m = {
                             const x = this.position.x
                             const y = this.position.y
                             const R = this.effectRadius //the ball resets right after, so keep its size
-                            const fade = 0.05 / (tech.bulletsLastLonger * (tech.isPlasmaBlast ? 10 : 1)) //anti-shear topology tech: lasts longer, so it keeps growing
+                            const fade = 0.05 / (tech.bulletsLastLonger * (tech.isPlasmaBlast ? 3 : 1)) //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
                             const rate = isRing ? 0.95 : 1.05 //how much it grows each cycle
                             const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
@@ -6648,7 +6648,7 @@ const m = {
 
                                     }
                                 } else if (m.energy > m.plasmaBall.drain) { //charge up when attached
-                                    const grow = m.plasmaBall.growRate * Math.max(0.5, 1 - m.plasmaBall.pressedGrowth * m.plasmaBall.pressed) * Math.min(1, Math.max(0, (m.plasmaBall.squeezeStop - m.plasmaBall.squeezed) / (m.plasmaBall.squeezeStop - m.plasmaBall.squeezeFree))) //squished into the map it grows slower, and squeezed into a small space it stops
+                                    const grow = m.plasmaBall.growRate * (tech.isPlasmaBlast ? 0.3 : 1) * Math.max(0.5, 1 - m.plasmaBall.pressedGrowth * m.plasmaBall.pressed) * Math.min(1, Math.max(0, (m.plasmaBall.squeezeStop - m.plasmaBall.squeezed) / (m.plasmaBall.squeezeStop - m.plasmaBall.squeezeFree))) //squished into the map it grows slower, and squeezed into a small space it stops
                                     if (tech.isCapacitor) {
                                         m.energy -= m.plasmaBall.drain * 2;
                                         const scale = 1 + 3 * grow * Math.pow(Math.max(1, m.plasmaBall.circleRadius), -1.8)
