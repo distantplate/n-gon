@@ -6575,7 +6575,7 @@ const m = {
                                 do() {
                                     //grow and fade
                                     this.count++
-                                    const blast = 1 + (tech.soundBotCount * this.alpha) //* Math.pow(rate,this.count)
+                                    const blast = 1 + (this.count / 20) //* Math.pow(rate,this.count)
                                     if (tech.isPlasmaBlast) {
                                         this.size = blast
                                     } else {this.size *= rate}
