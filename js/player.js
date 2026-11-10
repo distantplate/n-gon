@@ -6547,7 +6547,7 @@ const m = {
                             const x = this.position.x
                             const y = this.position.y
                             const R = this.effectRadius //the ball resets right after, so keep its size
-                            const fade = 0.05 / (tech.bulletsLastLonger * (tech.isPlasmaBlast ? 3 : 1)) //anti-shear topology tech: lasts longer, so it keeps growing
+                            const fade = 0.05 / tech.bulletsLastLonger //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
                             const rate = isRing ? 0.95 : 1.05 //how much it grows each cycle
                             const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
@@ -6571,9 +6571,13 @@ const m = {
                                 isProjectile: true, //b.clearProjectiles() discards it
                                 size: 1,
                                 alpha: 1,
+                                count: 0,
                                 do() {
                                     //grow and fade
-                                    this.size *= rate
+                                    if (tech.isPlasmaBlast) {
+                                        this.size = (1 + 2*(1-this.alpha)) * Math.pow(rate,this.count);
+                                        this.count++;
+                                    } else {this.size *= rate}
                                     this.alpha -= fade
                                     if (this.alpha < 0) {
                                         simulation.removeEphemera(this)
