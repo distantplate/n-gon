@@ -6544,13 +6544,14 @@ const m = {
                         },
                         explode() { //a blast that grows out of the ball's squished shape and stops at the map, damaging mobs inside it, plasma ring tech: it collapses inward instead
                             const ball = this
+                            const blast = tech.isPlasmaBlast ? 3 : 1
                             const x = this.position.x
                             const y = this.position.y
                             const R = this.effectRadius //the ball resets right after, so keep its size
                             const fade = 0.05 / tech.bulletsLastLonger //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
                             const rate = isRing ? 0.95 : 1.05 //how much it grows each cycle
-                            const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
+                            const growth = Math.max(1, Math.pow(rate, 1 / fade)) * blast //how much it grows over its life
                             const ring = this.ring.map(p => { //a copy of the ring that keeps rippling as it grows, each point grows out from the center along its own line, until the map
                                 const r = Math.sqrt(p.x * p.x + p.y * p.y) || 1
                                 const hit = vertexCollision({ x, y }, { x: x + growth * p.x, y: y + growth * p.y }, [map])
@@ -6571,16 +6572,13 @@ const m = {
                                 isProjectile: true, //b.clearProjectiles() discards it
                                 size: 1,
                                 alpha: 1,
-                                count: 0,
                                 do() {
                                     //grow and fade
                                     this.count++
-                                    //for whatever reason, the code will not allow me to multiply this.alpha
-
-                                    const blast = (2 - this.alpha) //* Math.pow(rate,this.count)
-                                    if (tech.isPlasmaBlast) {
-                                        this.size = (tech.soundBotCount + 1) * blast
-                                    } else {this.size *= rate}
+                                    /*if (tech.isPlasmaBlast) {
+                                        this.size = Math.pow(rate,this.count)
+                                    } else {this.size *= rate}*/
+                                    this.size = Math.max(1,(1 - this.alpha) * growth)
                                     this.alpha -= fade
                                     if (this.alpha < 0) {
                                         simulation.removeEphemera(this)
