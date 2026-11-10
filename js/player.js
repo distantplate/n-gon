@@ -6579,6 +6579,7 @@ const m = {
                                         this.size = Math.pow(rate,this.count)
                                     } else {this.size *= rate}*/
                                     this.size = Math.max(1,(1 - this.alpha) * growth)
+                                    simulation.inGameConsole(`${Math.max(1,(1 - this.alpha) * growth)}`)
                                     this.alpha -= fade
                                     if (this.alpha < 0) {
                                         simulation.removeEphemera(this)
