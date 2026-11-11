@@ -6357,7 +6357,7 @@ const m = {
                             Matter.Body.scale(this, scale, scale); //grow
                             this.alpha = 0.7
                             this.isOn = false
-                            this.contract()
+                            this.contractToggle = false
                             this.pressed = 0
                             this.squeezed = 0
                             this.resetRing(2 * this.circleRadius)
