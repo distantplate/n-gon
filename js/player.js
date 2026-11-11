@@ -6216,7 +6216,7 @@ const m = {
                             } else if (this.expandCount < 3 && simulation.cycle >= this.expandCycle) {
                                 this.expandCount += 0.1;
                                 const scale = (this.initialSize * this.expandCount) / this.circleRadius;
-                                Matter.Body.scale(this,scale,scale);
+                                this.scale(scale);
                                 this.fitToMap();
                             }
                         },
