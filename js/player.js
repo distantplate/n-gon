@@ -5825,7 +5825,7 @@ const m = {
                         setPositionToNose() {
                             const r = 27 * player.scale
                             const unit = { x: Math.cos(m.angle), y: Math.sin(m.angle) }
-                            Matter.Body.setPosition(this, Vector.add(m.pos, Vector.mult(unit, r + 2 * this.circleRadius * (tech.isPlasmaBlast ? 0.3 : 1))));
+                            Matter.Body.setPosition(this, Vector.add(m.pos, Vector.mult(unit, r + 2 * this.circleRadius)));
                         },
                         fitToMap() { //pull the ball back toward the player until its center is out of the map, so aiming it into the floor squishes it instead
                             const dx = this.position.x - m.pos.x
@@ -6205,17 +6205,18 @@ const m = {
                         scale(scale) {
                             if (this.circleRadius > this.radiusLimit) Matter.Body.scale(m.plasmaBall, scale, scale); //shrink fast
                         },
-                        expand() {
+                        contract() {
                             if (!this.isOn) {
-                                this.expandToggle = false;
-                            } else if (!this.expandToggle) {
-                                this.expandToggle = true;
-                                this.expandCycle = simulation.cycle + 120;
-                                this.expandCount = 1;
+                                this.contractToggle = false;
+                            } else if (!this.contractToggle) {
+                                this.contractToggle = true;
+                                this.contractCycle = simulation.cycle + 120;
+                                this.contractCount = 0;
                                 this.initialSize = this.circleRadius;
-                            } else if (this.expandCount < 3 && simulation.cycle >= this.expandCycle) {
-                                this.expandCount += 0.1;
-                                const scale = (this.initialSize * this.expandCount) / this.circleRadius;
+                            } else if (this.contractCount < 1 && simulation.cycle >= this.contractCycle) {
+                                this.contractCount += 0.05;
+                                const convert = 1 - (0.7 * this.contractCount);
+                                const scale = (this.initialSize * convert) / this.circleRadius;
                                 this.scale(scale);
                                 this.fitToMap();
                             }
@@ -6356,7 +6357,7 @@ const m = {
                             Matter.Body.scale(this, scale, scale); //grow
                             this.alpha = 0.7
                             this.isOn = false
-                            this.expand()
+                            this.contract()
                             this.pressed = 0
                             this.squeezed = 0
                             this.resetRing(2 * this.circleRadius)
@@ -6364,7 +6365,7 @@ const m = {
                         },
                         do() {
                             if (this.isOn) {
-                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange) * (tech.isPlasmaBlast ? 0.3 : 1)
+                                this.effectRadius = 2 * m.plasmaBall.circleRadius * (0.6 + 0.4 * tech.isPlasmaRange)
                                 const solitonTarget = tech.isSoliton && !(this.solitonCycle > simulation.cycle) && this.isSolitonInReach() //skip looking for mobs while the burst is cooling down
                                 if (solitonTarget) {
                                     const bonus = b.solitonReady(this, b.solitonCost, 0.01) //each excess energy adds 0.01x
@@ -6391,7 +6392,7 @@ const m = {
                                     if (m.energy > drain) m.energy -= drain
                                     this.soften()
                                     if (this.squeezed > this.squeezeFree) this.scale(1 - this.squeezeShrink * (this.squeezed - this.squeezeFree)) //squeezed into a space smaller than the ball, it shrinks to fit
-                                    else if (tech.isPlasmaBlast) this.expand()
+                                    else if (tech.isPlasmaBlast) this.contract()
                                     if (this.mobForce.x || this.mobForce.y) Matter.Body.setVelocity(this, { x: this.velocity.x + this.mobCouple * this.mobForce.x, y: this.velocity.y + this.mobCouple * this.mobForce.y }) //the mobs pushing and pulling on the ring push and pull the ball
                                     const push = Vector.magnitude(this.push)
                                     const isRubber = tech.isPlasmaRing //plasma ring tech: it bounces instead of popping
@@ -6563,11 +6564,11 @@ const m = {
                             const ball = this
                             const x = this.position.x
                             const y = this.position.y
-                            const toggle = tech.isPlasmaBlast > 0 ? 2 : 0
+                            const toggle = this.contractToggle ? 0.005 * this.contractCount : 0
                             const R = this.effectRadius //the ball resets right after, so keep its size
-                            const fade = 0.05 / (tech.bulletsLastLonger + toggle) //anti-shear topology tech: lasts longer, so it keeps growing
+                            const fade = 0.05 / (tech.bulletsLastLonger + 200 * toggle) //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
-                            const rate = isRing ? 0.95 : tech.isPlasmaBlast ? 1.055 : 1.05 //how much it grows each cycle
+                            const rate = isRing ? 0.95 : 1.05 + toggle //how much it grows each cycle
                             const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
                             const ring = this.ring.map(p => { //a copy of the ring that keeps rippling as it grows, each point grows out from the center along its own line, until the map
                                 const r = Math.sqrt(p.x * p.x + p.y * p.y) || 1
