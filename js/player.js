@@ -5734,7 +5734,7 @@ const m = {
             keyLog: [null, null, null, null, null],
             isHighPower: false, //secret combo: 4x damage instead of 2.5x, but 3 energy per second regen instead of 10, see m.setFieldRegen()
             fieldOn(isDraining = true) { //used by every plasma mode while the field button is held, isDraining false lets energy regenerate while the stream is out of energy
-                if (tech.isPlasmaBoost && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
+                if (tech.isPlasmaBoost && !tech.isPlasmaLink && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
                 if (isDraining && m.energy > m.fieldRegen) m.energy -= m.fieldRegen
                 m.grabPowerUp();
                 m.lookForBlock();
@@ -6392,6 +6392,7 @@ const m = {
                                     this.soften()
                                     if (this.squeezed > this.squeezeFree) this.scale(1 - this.squeezeShrink * (this.squeezed - this.squeezeFree)) //squeezed into a space smaller than the ball, it shrinks to fit
                                     else if (tech.isPlasmaBlast) this.contract()
+                                    if (tech.isPlasmaLink && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
                                     if (this.mobForce.x || this.mobForce.y) Matter.Body.setVelocity(this, { x: this.velocity.x + this.mobCouple * this.mobForce.x, y: this.velocity.y + this.mobCouple * this.mobForce.y }) //the mobs pushing and pulling on the ring push and pull the ball
                                     const push = Vector.magnitude(this.push)
                                     const isRubber = tech.isPlasmaRing //plasma ring tech: it bounces instead of popping
