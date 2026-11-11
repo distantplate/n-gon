@@ -12265,6 +12265,27 @@ const tech = {
         }
     },
     {
+        name: "plasma link",
+        descriptionFunction() {
+            return `${powerUps.orb.boost(1)} is active while <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong> is in flight<br>but not while charging`
+        },
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 3,
+        frequencyDefault: 3,
+        allowed() {
+            return (m.fieldMode === 5) && tech.isPlasmaBoost && tech.isPlasmaBall
+        },
+        requires: "plasma ball and dielectric",
+        effect() {
+            tech.isPlasmaLink = true;
+        },
+        remove() {
+            tech.isPlasmaLink = false;
+        }
+    },
+    {
         name: "cyclotron",
         description: "<strong class='color-plasma' data-help='plasma'>plasma</strong> ball curves towards your mouse<br><strong>2x</strong> <strong class='color-plasma' data-help='plasma'>plasma</strong> ball <strong class='color-d' data-help='damage'>damage</strong> after you <strong>release</strong> it.",
         isFieldTech: true,
@@ -12284,7 +12305,7 @@ const tech = {
         }
     },
     {
-        name: "plasma burst",
+        name: "z-pinch",
         description: "<strong>0.3x</strong> <strong class='color-plasma' data-help='plasma'>plasma</strong> ball radius<br><strong class='color-plasma' data-help='plasma'>plasma</strong> ball expands massively when it <strong>pops</strong>",
         isFieldTech: true,
         maxCount: 1,
@@ -12312,9 +12333,9 @@ const tech = {
         frequency: 2,
         frequencyDefault: 2,
         allowed() {
-            return m.fieldMode === 5 && tech.isPlasmaBall
+            return m.fieldMode === 5 && tech.isPlasmaBall && !tech.isPlasmaBlast
         },
-        requires: "plasma ball",
+        requires: "plasma ball, not z-pinch",
         warmUp() { //see simulation.warmShaders
             if (m.plasmaBall) m.plasmaBall.drawRing(m.plasmaBall.ring.map(p => ({ x: m.pos.x + 60 * p.ux, y: m.pos.y + 60 * p.uy })), 10, 0.7)
         },
