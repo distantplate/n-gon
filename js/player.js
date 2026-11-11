@@ -6206,14 +6206,18 @@ const m = {
                             if (this.circleRadius > this.radiusLimit) Matter.Body.scale(m.plasmaBall, scale, scale); //shrink fast
                         },
                         expand() {
-                            if (!this.expandCycle) {
+                            if (!this.isOn) {
+                                this.expandToggle = false;
+                            } else if (!this.expandToggle) {
+                                this.expandToggle = true;
                                 this.expandCycle = simulation.cycle + 120;
                                 this.expandCount = 1;
                                 this.initialSize = this.circleRadius;
-                            } else if (this.expandCount < 3) {
+                            } else if (this.expandCount < 3 && this.expandCycle >= simulation.cycle) {
                                 this.expandCount += 0.1;
                                 const scale = (this.initialSize * this.expandCount) / this.circleRadius;
                                 Matter.Body.scale(this,scale,scale);
+                                this.fitToMap();
                             }
                         },
                         isSolitonInReach() { //soliton tech: hold the ring until a mob is close enough for it to reach, returns that mob or null
@@ -6352,6 +6356,7 @@ const m = {
                             Matter.Body.scale(this, scale, scale); //grow
                             this.alpha = 0.7
                             this.isOn = false
+                            this.expand()
                             this.pressed = 0
                             this.squeezed = 0
                             this.resetRing(2 * this.circleRadius)
