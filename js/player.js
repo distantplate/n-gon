@@ -6218,7 +6218,6 @@ const m = {
                                 const convert = 1 - (0.7 * this.contractCount);
                                 const scale = (this.initialSize * convert) / this.circleRadius;
                                 this.scale(scale);
-                                this.fitToMap();
                             }
                         },
                         isSolitonInReach() { //soliton tech: hold the ring until a mob is close enough for it to reach, returns that mob or null
