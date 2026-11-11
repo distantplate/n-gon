@@ -12267,7 +12267,7 @@ const tech = {
     {
         name: "plasma link",
         descriptionFunction() {
-            return `${powerUps.orb.boost(1)} is active while <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong> is in flight<br>but not while charging`
+            return `${powerUps.orb.boost(1)} is active while <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong> is in flight<br>you no longer activate ${powerUps.orb.boost(1)} while charging <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong>`
         },
         isFieldTech: true,
         maxCount: 1,
