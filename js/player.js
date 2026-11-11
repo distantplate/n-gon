@@ -6210,7 +6210,8 @@ const m = {
                                 this.expandCycle = simulation.cycle + 120;
                                 this.expandCount = 1;
                                 this.initialSize = this.circleRadius;
-                            } else {
+                            } else if (this.expandCount < 3) {
+                                this.expandCount += 0.1;
                                 const scale = (this.initialSize * this.expandCount) / this.circleRadius;
                                 Matter.Body.scale(this,scale,scale);
                             }
