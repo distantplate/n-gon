@@ -1,4 +1,3 @@
-
 "use strict";
 //global player variables for use in matter.js physics
 let player, jumpSensor, playerBody, playerHead, headSensor;
@@ -6376,6 +6375,7 @@ const m = {
                                     if (m.energy > drain) m.energy -= drain
                                     this.soften()
                                     if (this.squeezed > this.squeezeFree) this.scale(1 - this.squeezeShrink * (this.squeezed - this.squeezeFree)) //squeezed into a space smaller than the ball, it shrinks to fit
+                                    else if (tech.isSoliton ? this.solitonCycle > simulation.cycle : false) this.scale(3)
                                     if (this.mobForce.x || this.mobForce.y) Matter.Body.setVelocity(this, { x: this.velocity.x + this.mobCouple * this.mobForce.x, y: this.velocity.y + this.mobCouple * this.mobForce.y }) //the mobs pushing and pulling on the ring push and pull the ball
                                     const push = Vector.magnitude(this.push)
                                     const isRubber = tech.isPlasmaRing //plasma ring tech: it bounces instead of popping
@@ -6547,7 +6547,7 @@ const m = {
                             const ball = this
                             const x = this.position.x
                             const y = this.position.y
-                            const toggle = tech.isPlasmaBlast > 0 ? 2 : 1
+                            const toggle = tech.isPlasmaBlast > 0 ? 2 : 0
                             const R = this.effectRadius //the ball resets right after, so keep its size
                             const fade = 0.05 / (tech.bulletsLastLonger + toggle) //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
