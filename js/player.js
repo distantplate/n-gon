@@ -6206,6 +6206,7 @@ const m = {
                             if (this.circleRadius > this.radiusLimit) Matter.Body.scale(m.plasmaBall, scale, scale); //shrink fast
                         },
                         contract() {
+                            //please work
                             if (!this.isOn) {
                                 this.contractToggle = false;
                             } else if (!this.contractToggle) {
