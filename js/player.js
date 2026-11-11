@@ -1,3 +1,4 @@
+
 "use strict";
 //global player variables for use in matter.js physics
 let player, jumpSensor, playerBody, playerHead, headSensor;
@@ -6550,7 +6551,7 @@ const m = {
                             const R = this.effectRadius //the ball resets right after, so keep its size
                             const fade = 0.05 / (tech.bulletsLastLonger + toggle) //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
-                            const rate = isRing ? 0.95 : tech.isPlasmaBlast ? 1.035 : 1.05 //how much it grows each cycle
+                            const rate = isRing ? 0.95 : tech.isPlasmaBlast ? 1.055 : 1.05 //how much it grows each cycle
                             const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
                             const ring = this.ring.map(p => { //a copy of the ring that keeps rippling as it grows, each point grows out from the center along its own line, until the map
                                 const r = Math.sqrt(p.x * p.x + p.y * p.y) || 1
