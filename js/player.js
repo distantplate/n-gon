@@ -6210,7 +6210,7 @@ const m = {
                                 this.contractToggle = false;
                             } else if (!this.contractToggle) {
                                 this.contractToggle = true;
-                                this.contractCycle = simulation.cycle + 120;
+                                this.contractCycle = simulation.cycle + 60;
                                 this.contractCount = 0;
                                 this.initialSize = this.circleRadius;
                             } else if (this.contractCount < 1 && simulation.cycle >= this.contractCycle) {
