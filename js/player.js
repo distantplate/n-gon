@@ -6193,6 +6193,7 @@ const m = {
                             const drain = 0.06
                             if (m.energy > drain) m.energy -= drain
                             this.isAttached = false;
+                            this.blastCycle = simulation.cycle + 120;
                             const speed = 5 + Math.min(15, 80 / this.mass) //scale speed with mass
                             Matter.Body.setVelocity(this, {
                                 x: player.velocity.x * 0.4 + speed * Math.cos(m.angle),
@@ -6375,7 +6376,7 @@ const m = {
                                     if (m.energy > drain) m.energy -= drain
                                     this.soften()
                                     if (this.squeezed > this.squeezeFree) this.scale(1 - this.squeezeShrink * (this.squeezed - this.squeezeFree)) //squeezed into a space smaller than the ball, it shrinks to fit
-                                    else if (tech.isSoliton ? this.solitonCycle > simulation.cycle : false) this.scale(3)
+                                    else if (tech.isPlasmablast && this.blastCycle == simulation.cycle) {this.scale(3)}
                                     if (this.mobForce.x || this.mobForce.y) Matter.Body.setVelocity(this, { x: this.velocity.x + this.mobCouple * this.mobForce.x, y: this.velocity.y + this.mobCouple * this.mobForce.y }) //the mobs pushing and pulling on the ring push and pull the ball
                                     const push = Vector.magnitude(this.push)
                                     const isRubber = tech.isPlasmaRing //plasma ring tech: it bounces instead of popping
