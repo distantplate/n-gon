@@ -6564,11 +6564,11 @@ const m = {
                             const ball = this
                             const x = this.position.x
                             const y = this.position.y
-                            const toggle = this.contractCount ? 0.005 * this.contractCount : 0
+                            const toggle = this.contractCount ? this.contractCount : 0
                             const R = this.effectRadius //the ball resets right after, so keep its size
-                            const fade = 0.05 / (tech.bulletsLastLonger + 400 * toggle) //anti-shear topology tech: lasts longer, so it keeps growing
+                            const fade = 0.05 / (tech.bulletsLastLonger + 2 * toggle) //anti-shear topology tech: lasts longer, so it keeps growing
                             const isRing = tech.isPlasmaRing //plasma ring tech: a ring shockwave that shrinks inward, it only burns mobs its band passes over
-                            const rate = isRing ? 0.95 : 1.05 + toggle //how much it grows each cycle
+                            const rate = isRing ? 0.95 : 1.05 + (toggle / 200) //how much it grows each cycle
                             const growth = Math.max(1, Math.pow(rate, 1 / fade)) //how much it grows over its life
                             const ring = this.ring.map(p => { //a copy of the ring that keeps rippling as it grows, each point grows out from the center along its own line, until the map
                                 const r = Math.sqrt(p.x * p.x + p.y * p.y) || 1
@@ -6585,7 +6585,7 @@ const m = {
                             }
                             const points = ring.map(() => ({ x, y }))
                             const band = this.ringWidth * R
-                            const dmg = this.damage * (tech.isControlPlasma ? 2 : 1) * (isRing ? this.ringDamage : 1) //cyclotron tech: a released ball does 2x damage, and it's always released when it explodes
+                            const dmg = this.damage * (tech.isControlPlasma ? 2 : 1) * (isRing ? this.ringDamage : 1) * (2 * toggle + 1) //cyclotron tech: a released ball does 2x damage, and it's always released when it explodes
                             simulation.ephemera.push({
                                 isProjectile: true, //b.clearProjectiles() discards it
                                 size: 1,
