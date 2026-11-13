@@ -6585,6 +6585,7 @@ const m = {
                             }
                             const points = ring.map(() => ({ x, y }))
                             const band = this.ringWidth * R
+                            //last change I make for a while
                             const dmg = this.damage * (tech.isControlPlasma ? 2 : 1) * (isRing ? this.ringDamage : 1) * (2 * toggle + 1) //cyclotron tech: a released ball does 2x damage, and it's always released when it explodes
                             simulation.ephemera.push({
                                 isProjectile: true, //b.clearProjectiles() discards it
