@@ -5734,7 +5734,7 @@ const m = {
             keyLog: [null, null, null, null, null],
             isHighPower: false, //secret combo: 4x damage instead of 2.5x, but 3 energy per second regen instead of 10, see m.setFieldRegen()
             fieldOn(isDraining = true) { //used by every plasma mode while the field button is held, isDraining false lets energy regenerate while the stream is out of energy
-                if (tech.isPlasmaBoost && !tech.isPlasmaLink && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
+                if (tech.isPlasmaBoost && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
                 if (isDraining && m.energy > m.fieldRegen) m.energy -= m.fieldRegen
                 m.grabPowerUp();
                 m.lookForBlock();
@@ -5749,7 +5749,7 @@ const m = {
                     const arraysEqual = (a, b) => a.length === b.length && a.every((val, i) => val === b[i]);
                     if (arraysEqual(m.fieldUpgrades[5].keyLog, patternA) || arraysEqual(m.fieldUpgrades[5].keyLog, patternB)) {
                         m.fieldUpgrades[5].isHighPower = !m.fieldUpgrades[5].isHighPower //trade energy regen for damage
-                        m.fieldDamage = m.fieldUpgrades[5].isHighPower ? 4 : 2.5
+                        m.fieldDamage = m.fieldUpgrades[5].isHighPower ? 4 : 2.2
                         m.setFieldRegen()
                         const isOn = m.fieldUpgrades[5].isHighPower
                         simulation.inGameConsole(`m<span class='color-symbol'>.</span>fieldUpgrades<span class='color-symbol'>[5].</span>isHighPower <span class='color-symbol'>=</span> ${isOn} &nbsp; &nbsp; <em style="float: right;font-family: monospace;font-size: 1rem;color: #fff;">←↓→→↓</em>
@@ -6215,9 +6215,27 @@ const m = {
                                 this.initialSize = this.circleRadius;
                             } else if (this.contractCount < 1 && simulation.cycle >= this.contractCycle) {
                                 this.contractCount += 0.05;
-                                const convert = 1 - (0.7 * this.contractCount);
-                                const scale = (this.initialSize * convert) / this.circleRadius;
+                                const convertNew = 1 - (0.7 * this.contractCount);
+                                const convertOld = 1 - (0.7 * (this.contractCount - 0.05));
+                                const scale = convertNew / convertOld;
                                 this.scale(scale);
+                            }
+                        },
+                        supercharge: 1,
+                        remoteDetonate(type) {
+                            if (type == 0 && this.supercharge < 3) {
+                                this.supercharge+= 0.05;
+                                if (!tech.isControlPlasma) {
+                                    let direction = Vector.normalise(this.velocity);
+                                    let speed = this.releaseSpeed * (1 - (this.supercharge - 1) / 2);
+                                    Matter.Body.setVelocity(this, Vector.mult(direction,speed));
+                                }
+                            }
+                            if (type == 1) {
+                                if (this.supercharge > 1) {
+                                    this.explode();
+                                    this.reset();
+                                }
                             }
                         },
                         isSolitonInReach() { //soliton tech: hold the ring until a mob is close enough for it to reach, returns that mob or null
@@ -6357,6 +6375,7 @@ const m = {
                             this.alpha = 0.7
                             this.isOn = false
                             this.contractToggle = false
+                            this.supercharge = 1
                             this.pressed = 0
                             this.squeezed = 0
                             this.resetRing(2 * this.circleRadius)
@@ -6392,7 +6411,6 @@ const m = {
                                     this.soften()
                                     if (this.squeezed > this.squeezeFree) this.scale(1 - this.squeezeShrink * (this.squeezed - this.squeezeFree)) //squeezed into a space smaller than the ball, it shrinks to fit
                                     else if (tech.isPlasmaBlast) this.contract()
-                                    if (tech.isPlasmaLink && powerUps.boost.endCycle < simulation.cycle + 60) powerUps.boost.endCycle = simulation.cycle + 60
                                     if (this.mobForce.x || this.mobForce.y) Matter.Body.setVelocity(this, { x: this.velocity.x + this.mobCouple * this.mobForce.x, y: this.velocity.y + this.mobCouple * this.mobForce.y }) //the mobs pushing and pulling on the ring push and pull the ball
                                     const push = Vector.magnitude(this.push)
                                     const isRubber = tech.isPlasmaRing //plasma ring tech: it bounces instead of popping
@@ -6416,7 +6434,7 @@ const m = {
                                 }
 
                                 //damage nearby mobs
-                                const dmg = this.damage * ((tech.isControlPlasma && !this.isAttached) ? 2 : 1) * (tech.isPlasmaRing ? this.ringDamage : 1) //cyclotron tech, plasma ring tech, for touching and arcs
+                                const dmg = this.damage * ((tech.isControlPlasma && !this.isAttached) ? 2 : 1) * (tech.isPlasmaRing ? this.ringDamage : 1) * this.supercharge //cyclotron tech, plasma ring tech, for touching and arcs
                                 const points = this.ring.map(p => ({ x: this.position.x + p.x, y: this.position.y + p.y })) //the ring in the world
                                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
                                 for (const p of points) {
@@ -6427,7 +6445,7 @@ const m = {
                                 }
                                 const ringBand = this.ringWidth * this.effectRadius //plasma ring tech
                                 const arcList = []
-                                const dischargeRange = 150 + 1600 * tech.plasmaDischarge + 1.3 * this.effectRadius
+                                const dischargeRange = (150 + 1600 * tech.plasmaDischarge + 1.3 * this.effectRadius) * this.supercharge
                                 for (let i = 0, len = mob.length; i < len; i++) {
                                     if (mob[i].alive && (!mob[i].isBadTarget || mob[i].isMobBullet) && !mob[i].isInvulnerable) {
                                         const sub = Vector.magnitude(Vector.sub(this.position, mob[i].position))
@@ -6514,6 +6532,12 @@ const m = {
                                     const mouseUnit = Vector.normalise(Vector.sub(simulation.mouseInGame, this.position))
                                     let speed = Vector.magnitude(this.velocity) //save current speed
                                     if (!this.isAttached && speed < this.releaseSpeed) speed += 0.01 * (this.releaseSpeed - speed) //a slowed ball eases back up to its release speed over about 5 seconds
+                                    if (!this.isAttached && this.supercharge > 1) {
+                                        let convert = (1 - (this.supercharge - 1) / 2)
+                                        if (convert < 0) {convert = 0}
+                                        let newspeed = this.releaseSpeed * convert
+                                        if (speed > newspeed) {speed = newspeed}
+                                    }
                                     const push = Vector.mult(mouseUnit, 0.008 * Math.pow(speed, 1.8)) //roughly optimized to produce similar turing radius for different sizes
                                     Matter.Body.setVelocity(this, Vector.add(push, this.velocity));
                                     const direction = Vector.magnitude(this.velocity) > 0.01 ? Vector.normalise(this.velocity) : mouseUnit //a stopped ball starts back up towards the mouse
@@ -6658,8 +6682,11 @@ const m = {
                                 //field is active
                                 if (!m.plasmaBall.isAttached) { //return ball to player
                                     if (m.plasmaBall.isOn) {
-                                        m.plasmaBall.explode()
-                                        m.plasmaBall.reset()
+                                        if (tech.isRemotePlasma && m.energy > m.plasmaBall.drain) {m.plasmaBall.remoteDetonate(0)}
+                                        else {
+                                            m.plasmaBall.explode()
+                                            m.plasmaBall.reset()
+                                        }
                                     } else {
                                         m.plasmaBall.isAttached = true
                                         m.plasmaBall.isOn = true
@@ -6706,6 +6733,7 @@ const m = {
                         } else {
                             m.holdingTarget = null; //clears holding target (this is so you only pick up right after the field button is released and a hold target exists)
                             if (m.plasmaBall.isAttached) m.plasmaBall.fire()
+                            else if (m.plasmaBall.isOn && tech.isRemotePlasma) m.plasmaBall.remoteDetonate(1)
                         }
                         m.drawRegenEnergy("rgba(0, 0, 0, 0.2)")
                         m.plasmaBall.do()

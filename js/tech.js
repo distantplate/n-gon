@@ -12265,24 +12265,24 @@ const tech = {
         }
     },
     {
-        name: "plasma link",
+        name: "remote detonation",
         descriptionFunction() {
-            return `${powerUps.orb.boost(1)} is active while <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong> is in flight<br>you no longer activate ${powerUps.orb.boost(1)} while <strong>charging</strong> <strong class='color-plasma' data-help='plasma'>plasma</strong> <strong>ball</strong>`
+            return `using ${powerUps.orb.field()} while <strong class='color-plasma' data-help='plasma'>plasma</strong> ball is in flight</br>stops it in place and <strong>supercharges</strong> it`
         },
         isFieldTech: true,
         maxCount: 1,
         count: 0,
-        frequency: 3,
-        frequencyDefault: 3,
+        frequency: 2,
+        frequencyDefault: 2,
         allowed() {
-            return (m.fieldMode === 5) && tech.isPlasmaBoost && tech.isPlasmaBall
+            return m.fieldMode === 5 && tech.isPlasmaBall
         },
-        requires: "plasma ball and dielectric",
+        requires: "plasma ball",
         effect() {
-            tech.isPlasmaLink = true;
+            tech.isRemotePlasma = true
         },
         remove() {
-            tech.isPlasmaLink = false;
+            tech.isRemotePlasma = false
         }
     },
     {
