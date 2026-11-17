@@ -29,9 +29,9 @@ const spawn = {
     tier5Color: "rgba(255,40,120,1)", //fill for every T5 mob and healthBar5
     bossTier: [
         [],//T0
-        ["snakeBoss", "dragonFlyBoss", "slashBoss", "revolutionBoss", "streamBoss", "launcherBoss", "grenadierBoss", "shooterBoss", "orbitalBoss", "spiderBoss", "shieldingBoss", "hydraBoss", "centipedeBoss", "roundwormBoss", "tubeWormBoss", "jellyBoss"],//T1
+        ["snakeBoss", "dragonFlyBoss", "slashBoss", "revolutionBoss", "streamBoss", "launcherBoss", "grenadierBoss", "shooterBoss", "orbitalBoss", "spiderBoss", "shieldingBoss", "hydraBoss", "centipedeBoss", "roundwormBoss", "tubeWormBoss", "jellyBoss", "stentorBoss"],//T1
         ["powerUpBossBaby", "sneakBoss", "blockBoss", "laserTargetingBoss", "blinkBoss", "pulsarBoss", "spawnerBossCulture", "growBossCulture", "spiderBoss2", "tendrilBoss", "hydraBoss2", "caterpillarBoss", "mayflyBoss", "jellyBoss2", "floodFillBoss"],//T2
-        ["powerUpBoss", "laserLayerBoss", "historyBoss", "beetleBoss", "snakeSpitBoss", "mantisBoss", "laserBombingBoss", "cellBossCulture", "bomberBoss", "timeSkipBoss", "conductorBoss", "spiderBoss3", "tendrilBoss3", "larvaBoss"],//T3
+        ["powerUpBoss", "laserLayerBoss", "historyBoss", "beetleBoss", "snakeSpitBoss", "mantisBoss", "laserBombingBoss", "cellBossCulture", "bomberBoss", "timeSkipBoss", "conductorBoss", "spiderBoss3", "tendrilBoss3", "larvaBoss", "stentorBoss3"],//T3
         ["stagBeetleBoss", "kingSnakeBoss", "iceBlockBoss", "fabricatorBoss", "pentaLaserBoss", "defendingBoss", "quasarBoss", "spiderBoss4", "roundwormBoss4", "jellyBoss4"] //T4
         //finalBoss is T5
     ],
@@ -43,9 +43,9 @@ const spawn = {
         // "snakeSpitBoss", "laserBombingBoss", "blockBoss", "revolutionBoss", "slashBoss", "shieldingBoss",
         // "timeSkipBoss", "dragonFlyBoss", "beetleBoss", "sneakBoss", "mantisBoss", "laserLayerBoss",
         // "snakeBoss", "conductorBoss", 
-        "snakeBoss", "dragonFlyBoss", "slashBoss", "revolutionBoss", "streamBoss", "launcherBoss", "grenadierBoss", "shooterBoss", "orbitalBoss", "spiderBoss", "shieldingBoss", "jellyBoss",
+        "snakeBoss", "dragonFlyBoss", "slashBoss", "revolutionBoss", "streamBoss", "launcherBoss", "grenadierBoss", "shooterBoss", "orbitalBoss", "spiderBoss", "shieldingBoss", "jellyBoss", "stentorBoss",
         "powerUpBossBaby", "sneakBoss", "blockBoss", "laserTargetingBoss", "blinkBoss", "pulsarBoss", "spawnerBossCulture", "growBossCulture", "jellyBoss2", "floodFillBoss",
-        "powerUpBoss", "laserLayerBoss", "historyBoss", "beetleBoss", "snakeSpitBoss", "mantisBoss", "laserBombingBoss", "cellBossCulture", "bomberBoss", "timeSkipBoss", "conductorBoss",
+        "powerUpBoss", "laserLayerBoss", "historyBoss", "beetleBoss", "snakeSpitBoss", "mantisBoss", "laserBombingBoss", "cellBossCulture", "bomberBoss", "timeSkipBoss", "conductorBoss", "stentorBoss3",
         // "stagBeetleBoss", "kingSnakeBoss", "iceBlockBoss", "fabricatorBoss", "pentaLaserBoss", "defendingBoss", "quasarBoss", "spiderBoss4"
     ],
     mobDmgDoneByTier: [0.35, 0.7, 2.1, 3.8, 4.5, 6.5],
@@ -141,6 +141,7 @@ const spawn = {
         spawn.afterDelay(cycles, () => {
             if (!who.alive) return
             who.constraint = Constraint.create({ pointA: { x: who.position.x, y: who.position.y }, bodyB: who, stiffness, damping });
+            cons.push(who.constraint) //in cons so clearing the map removes it with the boss
             Composite.add(engine.world, who.constraint);
         })
     },
@@ -223,39 +224,46 @@ const spawn = {
         }
     },
     randomMobPositions: [],
-    randomMobFromArray(veto = []) { //veto: mob names this level's spots won't spawn, the level's other mob types spawn instead, or others from its tier
+    allowedPickList(veto = []) { //the level's mob types without veto, or others from its tier if that's all of them
         const isAllowed = name => !veto.includes(name)
         let pickList = spawn.pickList.filter(isAllowed)
         if (!pickList.length) pickList = (level.levelsCleared > 13 && simulation.difficultyOptions.isMobTier23 ? spawn.fullPickList : spawn.tier[spawn.mobTierSpawnOrder[Math.min(level.levelsCleared, 13)]] || []).filter(isAllowed)
         if (!pickList.length) pickList = spawn.pickList
-        seededShuffle(spawn.randomMobPositions)
-        const maxMobs = (simulation.difficultyMode === 1) ? 2 : Math.ceil(5 * Math.log(level.levelsCleared + 1))
-        const mobsInLevel = mob.filter(who => who.alive && who.isDropPowerUp && !who.isBoss && !who.shield && !who.isMobBullet && who.collisionFilter.category !== cat.mobBullet).length
-        const mobsToSpawn = Math.min(spawn.randomMobPositions.length, Math.max(0, maxMobs - mobsInLevel) * (simulation.difficultyOptions.isDoubleMobs ? 2 : 1))
-        for (let i = 0; i < mobsToSpawn; i++) {
-            const position = spawn.randomMobPositions[i]
-            if (position.isSmall) {
-                const num = Math.max(Math.min(Math.round(Math.random() * simulation.difficulty * 0.2), 4), 0)
-                const size = 16 + Math.ceil(Math.random() * 15)
+        return pickList
+    },
+    mobAtPosition(position, pickList) { //a mob, or a few small ones, at { x, y, isSmall }
+        if (position.isSmall) {
+            const num = Math.max(Math.min(Math.round(Math.random() * simulation.difficulty * 0.2), 4), 0)
+            const size = 16 + Math.ceil(Math.random() * 15)
+            for (let j = 0; j < num; j++) {
+                const pick = pickList[Math.floor(Math.random() * pickList.length)]
+                spawn[pick](position.x + Math.round((Math.random() - 0.5) * 20) + j * size * 2.5, position.y + Math.round((Math.random() - 0.5) * 20), size)
+            }
+            if (tech.isDuplicateMobs && Math.random() < tech.duplicationChance()) {
                 for (let j = 0; j < num; j++) {
                     const pick = pickList[Math.floor(Math.random() * pickList.length)]
                     spawn[pick](position.x + Math.round((Math.random() - 0.5) * 20) + j * size * 2.5, position.y + Math.round((Math.random() - 0.5) * 20), size)
                 }
-                if (tech.isDuplicateMobs && Math.random() < tech.duplicationChance()) {
-                    for (let j = 0; j < num; j++) {
-                        const pick = pickList[Math.floor(Math.random() * pickList.length)]
-                        spawn[pick](position.x + Math.round((Math.random() - 0.5) * 20) + j * size * 2.5, position.y + Math.round((Math.random() - 0.5) * 20), size)
-                    }
-                }
-            } else {
+            }
+        } else {
+            const pick = pickList[Math.floor(Math.random() * pickList.length)]
+            spawn[pick](position.x, position.y)
+            if (tech.isDuplicateMobs && Math.random() < tech.duplicationChance()) {
                 const pick = pickList[Math.floor(Math.random() * pickList.length)]
                 spawn[pick](position.x, position.y)
-                if (tech.isDuplicateMobs && Math.random() < tech.duplicationChance()) {
-                    const pick = pickList[Math.floor(Math.random() * pickList.length)]
-                    spawn[pick](position.x, position.y)
-                }
             }
         }
+    },
+    randomMobAt(x, y, isSmall = false, veto = []) { //one spot's mobs right now, not limited by how many are in the level, for a mob spot linked to a trigger
+        spawn.mobAtPosition({ x, y, isSmall }, spawn.allowedPickList(veto))
+    },
+    randomMobFromArray(veto = []) { //veto: mob names this level's spots won't spawn, the level's other mob types spawn instead, or others from its tier
+        const pickList = spawn.allowedPickList(veto)
+        seededShuffle(spawn.randomMobPositions)
+        const maxMobs = (simulation.difficultyMode === 1) ? 2 : Math.ceil(5 * Math.log(level.levelsCleared + 1))
+        const mobsInLevel = mob.filter(who => who.alive && who.isDropPowerUp && !who.isBoss && !who.shield && !who.isMobBullet && who.collisionFilter.category !== cat.mobBullet).length
+        const mobsToSpawn = Math.min(spawn.randomMobPositions.length, Math.max(0, maxMobs - mobsInLevel) * (simulation.difficultyOptions.isDoubleMobs ? 2 : 1))
+        for (let i = 0; i < mobsToSpawn; i++) spawn.mobAtPosition(spawn.randomMobPositions[i], pickList)
     },
     randomSmallMob(x, y,
         num = Math.max(Math.min(Math.round(Math.random() * simulation.difficulty * 0.2), 4), 0),
@@ -1274,21 +1282,12 @@ const spawn = {
             };
         }
         me.lasers = function (where, angle, dmg = 0.1 * me.damageScale()) {
-            let best
             const seeRange = 7000;
-            best = {
-                x: null,
-                y: null,
-                dist2: Infinity,
-                who: null,
-                v1: null,
-                v2: null
-            };
             const look = {
                 x: where.x + seeRange * Math.cos(angle),
                 y: where.y + seeRange * Math.sin(angle)
             };
-            best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
             if (best.who && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
                 if (m.immuneCycle < m.cycle + 60 + m.collisionImmuneCycles) m.immuneCycle = m.cycle + 60 + m.collisionImmuneCycles; //player is immune to damage extra time
                 m.takeDamage(dmg);
@@ -1833,6 +1832,7 @@ const spawn = {
         mobs.spawn(x, y, 4, radius, "#999"); //#54291d
         const me = mob[mob.length - 1];
         me.tier = 2
+        me.memory = 240
         me.isBoss = true;
         Matter.Body.setDensity(me, 0.002); //normal density even though its a boss
         me.damageReduction = 0.04
@@ -1851,6 +1851,7 @@ const spawn = {
         mobs.spawn(x, y, 4, radius, "#999"); //#54291d
         const me = mob[mob.length - 1];
         me.tier = 4
+        me.memory = 420
         me.isBoss = true;
         Matter.Body.setDensity(me, 0.003);
         me.damageReduction = 0.02
@@ -1959,7 +1960,6 @@ const spawn = {
         Matter.Body.setDensity(me, 0.00012 + 0.000008 * simulation.difficulty) // normal density is 0.001
         me.damageReduction = 0.17
 
-        const k = 642 //k=r^2/m
         me.split = function () {
             const scale = 0.45
             Matter.Body.scale(this, scale, scale);
@@ -2159,7 +2159,20 @@ const spawn = {
         }
         spawn.allowShields = true;
         spawn.connectSoftGrid(meArray, gridX, gridY, stiffness, stiffnessDiagonal, stiffnessBending)
+        const heads = meArray.filter(who => who.col === gridX - 1)
+        for (const who of meArray) if (who.col !== gridX - 1) who.heads = heads //segments are aware while a head is, see softSegmentAwareness()
         return meArray
+    },
+    softSegmentAwareness(who) { //body and wing segments can't see, they're aware while a living head of their boss is, so flanking works on them while the heads sleep
+        let recall = 0
+        let isHeadAlive = false
+        for (let i = 0; i < who.heads.length; i++) {
+            if (who.heads[i].alive) {
+                isHeadAlive = true
+                if (who.heads[i].seePlayer.recall > recall) recall = who.heads[i].seePlayer.recall
+            }
+        }
+        if (isHeadAlive) who.seePlayer.recall = recall //after the heads die, decaying segments use alwaysSeePlayer
     },
     centipedeBoss(x, y, radius = 20, gridX = 16, gridY = 2, flipHead = false) {
         const softID = Math.random();
@@ -2372,6 +2385,7 @@ const spawn = {
         mobs.spawn(x, y, 5, radius + 6, "rgba(182, 99, 124, 1)");
         let me = mob[mob.length - 1];
         me.tier = 4
+        me.memory = 420
         Matter.Body.setDensity(me, 0.002); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.damageReduction = 0.1  //normal is 1,  most bosses have 0.25
         me.accelMag = 0.002 * spawn.fasterBoss(1.2) ** 2; //faster mobs, squared because it has no air friction, so its speed only goes up with the square root of its push
@@ -2442,7 +2456,7 @@ const spawn = {
         o.group.alive++
         me.frictionAir = 0.03
         me.seePlayerFreq = 30
-        me.memory = Infinity
+        me.memory = 240
         me.cd = simulation.cycle + 120 //cycle when it can leap at the player again
         me.leapRange = 500
         me.collisionFilter.mask = cat.player | cat.bullet | cat.body //no collisions with its own nodes, or the map while it has a membrane so it can squeeze through gaps
@@ -2591,7 +2605,10 @@ const spawn = {
                 node.damageScale = () => 0.25 * me.damageScale() //the membrane is soft, touching it does less damage
                 node.onDamage = () => me.locatePlayer()
                 node.onDeath = function () { me.pop(this) }
-                node.do = function () { this.checkStatus() }
+                node.do = function () {
+                    this.seePlayer.recall = me.seePlayer.recall //nodes can't see, they're aware when the core is, so flanking works on them while the core sleeps
+                    this.checkStatus()
+                }
                 Matter.Body.setVelocity(node, this.velocity)
                 this.membrane.push(node)
             }
@@ -3164,7 +3181,7 @@ const spawn = {
         me.do = function () {
             // if (this.seePlayer.recall) this.healthBar2()
             Matter.Body.setAngularVelocity(this, this.angularVelocity * 0.9)
-
+            if (this.heads) spawn.softSegmentAwareness(this)
             this.checkStatus();
             if (this.isDecay) {
                 this.health -= 0.001
@@ -3213,6 +3230,7 @@ const spawn = {
         me.flapRadius = 100 + radius * 3
         me.flapRate = 0.13
         me.do = function () {
+            if (this.heads) spawn.softSegmentAwareness(this)
             this.checkStatus();
             ctx.fillStyle = `hsla(${160 + 40 * Math.random()}, 100%, ${25 + 25 * Math.random() * Math.random()}%, 0.2)`; //"rgba(0,235,255,0.3)";   // ctx.fillStyle = `hsla(44, 79%, 31%,0.4)`; //"rgba(0,235,255,0.3)";
 
@@ -3278,6 +3296,7 @@ const spawn = {
         mobs.spawn(x, y, sides, radius, "rgba(182, 99, 124, 1)");
         let me = mob[mob.length - 1];
         me.tier = 2
+        me.memory = 240 //the head is the only part that sees, used by caterpillar and mayfly bosses
         me.softID = softID
         me.isBoss = true;
         me.isSoftBoss = true;
@@ -3420,7 +3439,7 @@ const spawn = {
         me.accelMag = (0.0004 + 0.0003 * simulation.accelScale) * spawn.fasterBoss(1.2);
         // Matter.Body.setDensity(me, 0.001); //normal is 0.001
         me.collisionFilter.mask = cat.bullet | cat.player | cat.body | cat.map
-        me.memory = Infinity;
+        me.memory = 240;
         me.seePlayerFreq = 17
         me.lockedOn = null;
         if (vertices === 9) {
@@ -4258,7 +4277,7 @@ const spawn = {
         me.accelMag = 0.00014 * spawn.fasterMobs(1.2)
         me.collisionFilter.mask = cat.map | cat.body | cat.bullet | cat.player //can't touch other mobs
         me.eventHorizon = radius * 8; //required for black hole
-        me.memory = 300
+        me.memory = 240
         // me.onDeath = function () { //helps collisions functions work better after vertex have been changed
         //   this.vertices = Matter.Vertices.hull(Matter.Vertices.clockwiseSort(this.vertices))
         // }
@@ -4298,11 +4317,10 @@ const spawn = {
         me.tier = 2
         me.stroke = "transparent"; //used for drawSneaker
         me.eventHorizon = radius * 30; //required for blackhole
-        me.seeAtDistance2 = (me.eventHorizon + 400) * (me.eventHorizon + 400); //vision limit is event horizon
         me.accelMag = 0.00012 * simulation.accelScale * spawn.fasterMobs(1.2);
         me.frictionAir = 0.025;
         me.collisionFilter.mask = cat.player | cat.bullet | cat.body
-        me.memory = Infinity;
+        me.memory = 240;
         Matter.Body.setDensity(me, 0.015); //extra dense //normal is 0.001 //makes effective life much larger
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar2()
@@ -4313,7 +4331,7 @@ const spawn = {
                     y: this.velocity.y * 0.99
                 });
             }
-            this.seePlayerCheckByDistance()
+            this.seePlayerCheck()
             this.checkStatus();
             //accelerate towards the player
             if (this.seePlayer.recall) {
@@ -4460,6 +4478,18 @@ const spawn = {
             }
         }
     },
+    spiderLegSync(leg, body) { //spider legs are aware while the body is, a leg that spots the player still alerts the body through alertNearByMobs()
+        const legDo = leg.do
+        leg.do = function () {
+            if (body.alive) {
+                this.seePlayer.recall = body.seePlayer.recall
+                this.seePlayer.yes = body.seePlayer.yes
+                this.seePlayer.position.x = body.seePlayer.position.x
+                this.seePlayer.position.y = body.seePlayer.position.y
+            }
+            legDo.call(this)
+        }
+    },
     spiderBoss(x, y, radius = 60) {
         let targets = [] //track who is in the node boss, for shields
         mobs.spawn(x, y, 6, radius, "#b386e8");
@@ -4509,6 +4539,7 @@ const spawn = {
             mob[mob.length - 1].damageReduction = 0.15
             mob[mob.length - 1].isDropPowerUp = false
             targets.push(mob[mob.length - 1].id) //track who is in the node boss, for shields
+            spawn.spiderLegSync(mob[mob.length - 1], me)
         }
 
         const attachmentStiffness = 0.02
@@ -4532,6 +4563,7 @@ const spawn = {
         mobs.spawn(x, y, 6, radius, "rgba(182, 99, 124, 1)");
         let me = mob[mob.length - 1];
         me.tier = 2
+        me.memory = 240
         Matter.Body.setDensity(me, 0.003); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.isBoss = true;
         me.damageReduction = 0.047  //normal is 1,  most bosses have 0.25
@@ -4573,6 +4605,7 @@ const spawn = {
             spawn.sliceSpiderLeg(x + sideLength * Math.sin(i * angle), y + sideLength * Math.cos(i * angle), radius, 12);
             mob[mob.length - 1].isBoss = false
             targets.push(mob[mob.length - 1].id) //track who is in the node boss, for shields
+            spawn.spiderLegSync(mob[mob.length - 1], me)
         }
 
         const attachmentStiffness = 0.1
@@ -4596,6 +4629,7 @@ const spawn = {
         mobs.spawn(x, y, 6, radius, "#446");
         let me = mob[mob.length - 1];
         me.tier = 3
+        me.memory = 240
         Matter.Body.setDensity(me, 0.0025); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.isBoss = true;
         me.damageReduction = 0.12  //normal is 1,  most bosses have 0.25
@@ -4644,6 +4678,7 @@ const spawn = {
             mob[mob.length - 1].isDropPowerUp = false
             mob[mob.length - 1].isBoss = false
             targets.push(mob[mob.length - 1].id) //track who is in the node boss, for shields
+            spawn.spiderLegSync(mob[mob.length - 1], me)
         }
 
         const attachmentStiffness = 0.05
@@ -4667,6 +4702,7 @@ const spawn = {
         mobs.spawn(x, y, 6, radius, "#446");
         let me = mob[mob.length - 1];
         me.tier = 4
+        me.memory = 420
         Matter.Body.setDensity(me, 0.001); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.isBoss = true;
         me.damageReduction = 0.2  //normal is 1,  most bosses have 0.25
@@ -4731,6 +4767,7 @@ const spawn = {
                 mob[mob.length - 1].isDropPowerUp = false
                 mob[mob.length - 1].isBoss = false
                 targets.push(mob[mob.length - 1].id) //track who is in the node boss, for shields
+                spawn.spiderLegSync(mob[mob.length - 1], me)
             }
             const attachmentStiffness = 0.02
             spawn.constrain2AdjacentMobs(nodes, attachmentStiffness, true); //loop mobs together
@@ -4814,6 +4851,7 @@ const spawn = {
         mobs.spawn(x, y, 6, radius, "#378e9dff");
         let me = mob[mob.length - 1];
         me.tier = tier
+        me.memory = 240
         Matter.Body.setDensity(me, 0.002); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.damageReduction = 0.15  //normal is 1,  most bosses have 0.25
         me.frictionAir = 0.004;
@@ -4925,6 +4963,7 @@ const spawn = {
         mobs.spawn(x, y, 6, radius, "rgba(227, 77, 122, 1)");
         let me = mob[mob.length - 1];
         me.tier = 2
+        me.memory = 240
         Matter.Body.setDensity(me, 0.002); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.damageReduction = 0.045  //normal is 1,  most bosses have 0.25
         me.frictionAir = 0.004;
@@ -5183,6 +5222,7 @@ const spawn = {
         mobs.spawn(x, y, 5, radius, "#6ba");
         let me = mob[mob.length - 1];
         me.tier = 3
+        me.memory = 240
         me.babyList = [] //list of mobs that are apart of this boss
         Matter.Body.setDensity(me, 0.0015); //extra dense //normal is 0.001 //makes effective life much larger  and damage on collision
         me.damageReduction = 0.14  //normal is 1,  most bosses have 0.25
@@ -5298,14 +5338,6 @@ const spawn = {
                 this.torque = this.lookTorque * this.inertia;
                 //spring to random place on map
                 if (!(simulation.cycle % (this.seePlayerFreq))) {
-                    best = {
-                        x: null,
-                        y: null,
-                        dist2: Infinity,
-                        who: null,
-                        v1: null,
-                        v2: null
-                    };
                     const seeRange = 3000;
                     const look = { x: this.position.x + seeRange * Math.cos(this.angle), y: this.position.y + seeRange * Math.sin(this.angle) };
                     best = vertexCollision(this.position, look, [map]);
@@ -5701,9 +5733,10 @@ const spawn = {
         // me.onDeath = function() {};
         me.flapRate = 0.3 + Math.floor(3 * Math.random()) / 10 + 100 * me.accelMag
         me.flapRadius = 75 + radius * 3
+        me.lookTorque = 0.000002 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar1()
-            this.seePlayerByHistory()
+            this.seePlayerByLookingAtThenHistory()
             this.checkStatus();
             if (this.seePlayer.recall) {
                 this.flyTowardPlayer(0.000025 * speed) //turns faster when it flies faster, so it doesn't swing wide
@@ -5739,11 +5772,14 @@ const spawn = {
         // me.onDeath = function() {};
         me.flapRate = 0.06 + 0.03 * Math.random()
         me.flapRadius = 10 + radius * 2
+        me.lookTorque = 0.0000015 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
-            this.seePlayerByHistory()
+            this.seePlayerByLookingAtThenHistory()
             this.checkStatus();
-            if (this.seePlayer.recall) {
+            if (!this.seePlayer.recall) {
+                this.frictionAir = 0.03 //flapping changes it, reset so it turns at the same speed while looking around
+            } else {
                 this.flyTowardPlayer(0.00002 * speed) //turns faster when it flies faster, so it doesn't swing wide
 
                 // this.accelMag = 0.0006 + 0.0007 * Math.sqrt(simulation.accelScale);
@@ -5787,12 +5823,15 @@ const spawn = {
         me.wingLength = 100
         me.ellipticity = 0.2
         me.angleOff = 0.4
+        me.lookTorque = 0.0000015 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
 
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar4()
-            this.seePlayerByHistory()
+            this.seePlayerByLookingAtThenHistory()
             this.checkStatus();
-            if (this.seePlayer.recall) {
+            if (!this.seePlayer.recall) {
+                this.frictionAir = 0.03 //flapping changes it, reset so it turns at the same speed while looking around
+            } else {
                 this.flyTowardPlayer(0.00002 * speed) //turns faster when it flies faster, so it doesn't swing wide
 
                 this.frictionAir = 0.08 + 0.09 * Math.sin(simulation.cycle * this.flapRate - Math.PI / 2)
@@ -5994,7 +6033,7 @@ const spawn = {
         Matter.Body.rotate(me, Math.random() * Math.PI * 2);
         me.accelMag = 0.00018 * Math.sqrt(simulation.accelScale) * spawn.fasterBoss(1.3);
         me.seePlayerFreq = 30
-        me.memory = 420;
+        me.memory = 240;
         me.restitution = 1;
         me.frictionAir = 0.01;
         me.frictionStatic = 0;
@@ -6030,14 +6069,6 @@ const spawn = {
                 }
                 if (simulation.cycle * this.cycleSpeed % this.laserInterval > this.laserInterval / 2) {
                     const seeRange = 8000;
-                    best = {
-                        x: null,
-                        y: null,
-                        dist2: Infinity,
-                        who: null,
-                        v1: null,
-                        v2: null
-                    };
                     const look = { x: this.position.x + seeRange * Math.cos(this.angle), y: this.position.y + seeRange * Math.sin(this.angle) };
                     best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
@@ -6124,14 +6155,6 @@ const spawn = {
                 }
 
                 const seeRange = 8000;
-                best = {
-                    x: null,
-                    y: null,
-                    dist2: Infinity,
-                    who: null,
-                    v1: null,
-                    v2: null
-                };
                 const look = { x: this.position.x + seeRange * Math.cos(this.angle), y: this.position.y + seeRange * Math.sin(this.angle) };
                 best = vertexCollision(this.position, look, m.isCloak ? [map] : [map, [playerBody, playerHead]]);
 
@@ -6269,8 +6292,10 @@ const spawn = {
         me.dashSpeed = 25 * spawn.fasterBoss(1.2)
         me.freezeCycles = 130 //after a dash the boss freezes in place
         me.freezeImmuneCycle = 10 //and is immune to damage after 10 cycles, for the last 2 seconds of the freeze, so the player has a chance to get away
-        me.windUpCycles = Math.round(15 * spawn.fasterBoss(0.6)) //pause to show the path before dashing
+        me.windUpCycles = Math.round(60 * spawn.fasterBoss(0.8)) //pause to show the path and fire grenades down it before dashing
         me.grenadeDelay = Math.round(37.5 * spawn.fasterBoss(0.6)) //cycles from the end of a dash until the mortar grenade blast
+        me.pathGrenades = 4 //grenades pulled down the path ahead of the dash
+        me.pathGrenadeGap = Math.floor(me.windUpCycles / me.pathGrenades) //grenades launch spread out over the wind up
         spawn.shield(me, x, y);
         me.onDeath = function () {
             powerUps.spawnBossPowerUp(this.position.x, this.position.y)
@@ -6369,10 +6394,38 @@ const spawn = {
                 }
             }
         }
+        me.launchGrenade = function () { //a grenade pulled down the route, its timer is set to about when it gets to the end, some blow up early and some late
+            const route = this.route //shared, so the grenade also follows lastLeg's aim at the player
+            spawn.grenade(this.position.x, this.position.y, this.tier, 1, 0.7 * Math.min(550, 250 + simulation.difficulty * 3))
+            const who = mob[mob.length - 1]
+            who.collisionFilter.mask = cat.player //the route was checked against walls and blocks while it grew, so follow it exactly
+            let index = this.routeIndex
+            let length = Vector.magnitude(Vector.sub(route[index], this.position))
+            for (let i = index + 1; i < route.length; i++) length += Vector.magnitude(Vector.sub(route[i], route[i - 1]))
+            who.lifeSpan = Math.max(25, Math.round(length / this.dashSpeed * (0.7 + 0.6 * Math.random())))
+            who.timeLeft = who.lifeSpan
+            const grenadeDo = who.do
+            const speed = this.dashSpeed
+            who.do = function () {
+                let sub = Vector.sub(route[index], this.position)
+                while (index < route.length - 1 && Vector.magnitude(sub) < speed) {
+                    index++
+                    sub = Vector.sub(route[index], this.position)
+                }
+                if (Vector.magnitude(sub) < speed) { //at the end of the route, wait there for the blast
+                    Matter.Body.setPosition(this, route[index])
+                    Matter.Body.setVelocity(this, { x: 0, y: 0 })
+                } else {
+                    Matter.Body.setVelocity(this, Vector.mult(Vector.normalise(sub), speed))
+                }
+                grenadeDo.call(this)
+            }
+        }
         me.found = function (node) { //the other paths disappear and the boss dashes down the path that saw the player
             this.route = []
             for (; node; node = node.parent) this.route.unshift(node)
             this.route.push({ x: player.position.x, y: player.position.y })
+            this.grenadesLaunched = 0
             let length = 0
             for (let i = 1; i < this.route.length; i++) length += Vector.magnitude(Vector.sub(this.route[i], this.route[i - 1]))
             this.dashCycleLimit = this.windUpCycles + 60 + 2 * length / this.dashSpeed //give up if the dash takes way too long
@@ -6395,6 +6448,10 @@ const spawn = {
         }
         me.dash = function () {
             this.dashCycle++
+            if (this.grenadesLaunched < this.pathGrenades && !((this.dashCycle - 1) % this.pathGrenadeGap)) { //send grenades down the path ahead of the dash
+                this.grenadesLaunched++
+                this.launchGrenade()
+            }
             if (this.dashCycle < this.windUpCycles) {
                 Matter.Body.setVelocity(this, Vector.mult(this.velocity, 0.8))
                 return
@@ -6493,7 +6550,7 @@ const spawn = {
         for (let i = 0; i < 20; i++) me.history.push({ x: me.position.x + i, y: me.position.y })
         me.frictionStatic = 0;
         me.friction = 0;
-        me.memory = 900;
+        me.memory = o.memory;
         me.seePlayerFreq = 41
         me.delay = 3 + 2 * simulation.CDScale;
         me.nextBlinkCycle = me.delay;
@@ -6632,7 +6689,8 @@ const spawn = {
                     if (!this.seePlayer.yes) this.seePlayer.yes = true;
                     this.move()
                 } else if (this.seePlayer.recall) { //chase player's history
-                    this.lostPlayer();
+                    this.seePlayer.yes = false
+                    this.seePlayer.recall = Math.max(0, this.seePlayer.recall - this.delay) //forget by the cycles between blinks, so memory is in cycles like other mobs
                     if (m.isCloak) {
                         this.move(this.seePlayer.position) //go after where you last saw the player
                     } else {
@@ -6685,7 +6743,7 @@ const spawn = {
         me.damageReduction = 0.5
         spawn.snakeSetup(me, {
             redColor: `rgba(255,0,200,`, blueColor: `rgba(0,0,255,`, redJump: 13, blueJump: 30, redRadius: 25, blueRadius: 14,
-            invulnerableCount: 200, phaseTail: 9, healthBar: "healthBar1", isFullHealOnEat: false, outlineWidth: 13
+            invulnerableCount: 200, phaseTail: 9, healthBar: "healthBar1", isFullHealOnEat: false, outlineWidth: 13, memory: 120
         })
     },
     kingSnakeBoss(x, y) {
@@ -6696,7 +6754,7 @@ const spawn = {
         me.damageReduction = 0.4
         spawn.snakeSetup(me, {
             redColor: `rgba(255,255,0,`, blueColor: `rgba(255,0,0,`, redJump: 12, blueJump: 33, redRadius: 35, blueRadius: 20,
-            invulnerableCount: 170, phaseTail: 10, healthBar: "healthBar4", isFullHealOnEat: true, outlineWidth: 15
+            invulnerableCount: 170, phaseTail: 10, healthBar: "healthBar4", isFullHealOnEat: true, outlineWidth: 15, memory: 420
         })
     },
     pulsarBoss(x, y, radius = 90, isNonCollide = false) {
@@ -7397,8 +7455,8 @@ const spawn = {
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
             this.cycle += this.cycleSpeed
-            this.torque = this.lookTorque * this.inertia * 0.6;
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
+            this.torque = this.lookTorque * this.inertia * 0.6; //after the cone so it keeps its own slow spin while asleep
             this.checkStatus();
             this.drift();
             //add new laser to lasers array
@@ -7414,6 +7472,7 @@ const spawn = {
         mobs.spawn(x, y, 4, radius, "#f09");
         let me = mob[mob.length - 1];
         me.tier = 3
+        me.memory = 240
         me.vertices = Matter.Vertices.rotate(me.vertices, Math.PI, me.position); //make the pointy side of triangle the front
         for (let i = 0; i < 4; i += 2) {
             let spike = Vector.mult(Vector.normalise(Vector.sub(me.vertices[i], me.position)), radius * 2)
@@ -7603,16 +7662,8 @@ const spawn = {
                 const time = simulation.cycle * this.cycleSpeed % this.laserInterval //where it is in its charge and beam cycle
                 if (time > this.laserInterval / 2) {
                     const seeRange = 8000;
-                    let best = {
-                        x: null,
-                        y: null,
-                        dist2: Infinity,
-                        who: null,
-                        v1: null,
-                        v2: null
-                    };
                     const look = { x: this.position.x + seeRange * Math.cos(this.angle), y: this.position.y + seeRange * Math.sin(this.angle) };
-                    best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+                    let best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
                     // hitting player
                     if (!(m.cycle % 2) && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
@@ -7657,7 +7708,7 @@ const spawn = {
         me.vertices = Matter.Vertices.rotate(me.vertices, Math.PI, me.position); //make the pointy side of triangle the front
         Matter.Body.rotate(me, Math.random() * Math.PI * 2);
         me.accelMag = 0.0003 * spawn.fasterMobs(1.3)
-        me.memory = 360;
+        me.memory = 240;
         me.laserInterval = 300 + Math.floor(80 * Math.random())
         me.cycleSpeed = spawn.fasterMobs(1.5) //how fast it goes through its charge and beam cycle
         me.cycle = 0
@@ -7672,7 +7723,7 @@ const spawn = {
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar4()
             this.torque = this.lookTorque * this.inertia * 0.2;
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
             this.attraction();
             if (this.seePlayer.recall) {
@@ -7683,17 +7734,9 @@ const spawn = {
                 if (this.cycle % this.laserInterval > 0.7 * this.laserInterval) {
                     for (let i = 0; i < 4; i++) {
                         const seeRange = 8000;
-                        let best = {
-                            x: null,
-                            y: null,
-                            dist2: Infinity,
-                            who: null,
-                            v1: null,
-                            v2: null
-                        };
                         const angle = this.angle + ((i + 2.5) * 1.57)
                         const look = { x: this.position.x + seeRange * Math.cos(angle), y: this.position.y + seeRange * Math.sin(angle) };
-                        best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+                        let best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
                         // hitting player
                         if ((best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
@@ -7751,7 +7794,7 @@ const spawn = {
         me.frictionAir = 0.01
         me.laserInterval = 140
         me.cycleSpeed = spawn.fasterBoss(1.5) //how fast it goes through its charge and beam cycle
-        me.memory = 480;
+        me.memory = 420;
         spawn.shield(me, x, y);
         const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'] //rainbow laser babies
         me.onDeath = function () { //run this function on death
@@ -7786,17 +7829,9 @@ const spawn = {
                 if (simulation.cycle * this.cycleSpeed % this.laserInterval > this.laserInterval / 2) {
                     for (let i = 0; i < 5; i++) {
                         const seeRange = 8000;
-                        let best = {
-                            x: null,
-                            y: null,
-                            dist2: Infinity,
-                            who: null,
-                            v1: null,
-                            v2: null
-                        };
                         const angle = this.angle + ((i + 3) * 1.25)
                         const look = { x: this.position.x + seeRange * Math.cos(angle), y: this.position.y + seeRange * Math.sin(angle) };
-                        best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+                        let best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
                         // hitting player
                         if ((best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
@@ -7866,16 +7901,8 @@ const spawn = {
 
                 if (simulation.cycle * this.cycleSpeed % this.laserInterval > this.laserInterval / 2) {
                     const seeRange = 8000;
-                    let best = {
-                        x: null,
-                        y: null,
-                        dist2: Infinity,
-                        who: null,
-                        v1: null,
-                        v2: null
-                    };
                     const look = { x: this.position.x + seeRange * Math.cos(this.angle), y: this.position.y + seeRange * Math.sin(this.angle) };
-                    best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+                    let best = vertexCollision(this.position, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
                     // hitting player
                     if ((best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
@@ -7952,18 +7979,9 @@ const spawn = {
             }
         };
         me.laserArray = function (where, angle) {
-            let best
             const seeRange = 7000;
-            best = {
-                x: null,
-                y: null,
-                dist2: Infinity,
-                who: null,
-                v1: null,
-                v2: null
-            };
             const look = { x: where.x + seeRange * Math.cos(angle), y: where.y + seeRange * Math.sin(angle) };
-            best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
             if (best.who && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
                 m.immuneCycle = m.cycle + m.collisionImmuneCycles + 30; //player is immune to damage for an extra second
@@ -8081,7 +8099,7 @@ const spawn = {
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar2()
             this.gravity();
-            this.seePlayerForStrike()
+            this.seePlayerByLookingAtForStrike()
             this.checkStatus();
             this.attraction();
             if (this.cd < simulation.cycle && this.seePlayer.recall) {
@@ -8128,7 +8146,7 @@ const spawn = {
         };
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar2()
-            this.seePlayerForStrike()
+            this.seePlayerByLookingAtForStrike()
             this.checkStatus();
             if (this.distanceToPlayer() < 500) {
                 this.accelMag = 0.002 * speed //faster when close
@@ -8180,7 +8198,7 @@ const spawn = {
         };
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
-            this.seePlayerForStrike()
+            this.seePlayerByLookingAtForStrike()
             this.checkStatus();
             const target = this.playerTarget()
             if ((!m.isCloak || this.seePlayer.recall) && Vector.magnitude(Vector.sub(target, this.position)) < 500) {
@@ -8238,7 +8256,7 @@ const spawn = {
         };
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar5()
-            this.seePlayerForStrike()
+            this.seePlayerByLookingAtForStrike()
             this.checkStatus();
             const target = this.playerTarget()
             if ((!m.isCloak || this.seePlayer.recall) && Vector.magnitude(Vector.sub(target, this.position)) < 1000) { //2x the slicer range to match its sword
@@ -8326,10 +8344,8 @@ const spawn = {
             }
         };
         me.laserSword = function (where, angle, length) {
-            let best
-            best = { x: null, y: null, dist2: Infinity, who: null, v1: null, v2: null };
             const look = { x: where.x + length * Math.cos(angle), y: where.y + length * Math.sin(angle) };
-            best = vertexCollision(where, look, [map, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, [map, [playerBody, playerHead]]);
             if (best.who && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
                 m.immuneCycle = m.cycle + m.collisionImmuneCycles; //player is immune to damage for an extra second
                 m.takeDamage(this.swordDamage);
@@ -9240,6 +9256,7 @@ const spawn = {
         me.invulnerableCount = 0
 
         me.seeAtDistance2 = 4000000; //2000 distance
+        me.memory = 240
         me.cycle = 0
         me.speedScale = spawn.fasterBoss(1.2) //faster mobs changes its speed near the player, not its catch up speed, which is already close to the most it can go and still follow the track
         me.accelMag = 0.023 * me.speedScale //can't follow track above 1.1
@@ -9402,14 +9419,12 @@ const spawn = {
                 ctx.fill();
             }
             //player vision
-            if (this.distanceToPlayer2() < this.seeAtDistance2) { //2000
-                //close to player, go slow
-                me.accelMag = 0.023 * this.speedScale //can't follow track above 1.1
-                if ((!Matter.Query.rayAny(map, this.position, this.playerPosRandomY())) && !m.isCloak) this.foundPlayer();
-            } else {
-                //far from player, go fast
-                me.accelMag = 0.1 //can't follow track above 1.1
-                if (this.seePlayer.recall) this.lostPlayer();
+            const isNear = this.distanceToPlayer2() < this.seeAtDistance2 //2000
+            me.accelMag = isNear ? 0.023 * this.speedScale : 0.1 //close to player go slow, far go fast, can't follow track above 1.1
+            if (isNear && !Matter.Query.rayAny(map, this.position, this.playerPosRandomY()) && !m.isCloak) {
+                this.foundPlayer();
+            } else if (this.seePlayer.recall && !(simulation.cycle % this.seePlayerFreq)) { //forget over memory cycles when it can't see the player, near or far
+                this.lostPlayer();
             }
             if (this.isPhaseInvulnerable) {
                 this.invulnerableCount--
@@ -9423,7 +9438,7 @@ const spawn = {
                     // spawn.freezeGrenade(this.position.x, this.position.y, null, 60, 100 + 20 * simulation.difficultyMode);
                     spawn.mine(this.position.x, this.position.y)
                 }
-            } else if (this.seePlayer.recall && this.ammo && !(simulation.cycle % 7)) {
+            } else if (this.seePlayer.recall && isNear && this.ammo && !(simulation.cycle % 7)) { //only fires near the player, so it doesn't spend ammo while it still remembers them from far away
                 // console.log(this.seePlayer.recall)
                 this.ammo--
                 // const velocity = Vector.rotate(Vector.mult(Vector.normalise(this.velocity), -5 - 10 * Math.random()), 0.5 * (Math.random() - 0.5))
@@ -9447,6 +9462,7 @@ const spawn = {
         me.invulnerableCount = 0
 
         me.seeAtDistance2 = 4000000; //2000 distance
+        me.memory = 240
         me.cycle = 0
         me.speedScale = spawn.fasterBoss(1.2) //faster mobs changes its speed near the player, not its catch up speed, which is already close to the most it can go and still follow the track
         me.accelMag = 0.03 * me.speedScale //can't follow track above 1.1
@@ -9600,14 +9616,12 @@ const spawn = {
                 ctx.fill();
             }
             //player vision
-            if (this.distanceToPlayer2() < this.seeAtDistance2) { //2000
-                //close to player, go slow
-                me.accelMag = 0.03 * this.speedScale //can't follow track above 1.1
-                if ((!Matter.Query.rayAny(map, this.position, this.playerPosRandomY())) && !m.isCloak) this.foundPlayer();
-            } else {
-                //far from player, go fast
-                me.accelMag = 0.1 //can't follow track above 1.1
-                if (this.seePlayer.recall) this.lostPlayer();
+            const isNear = this.distanceToPlayer2() < this.seeAtDistance2 //2000
+            me.accelMag = isNear ? 0.03 * this.speedScale : 0.1 //close to player go slow, far go fast, can't follow track above 1.1
+            if (isNear && !Matter.Query.rayAny(map, this.position, this.playerPosRandomY()) && !m.isCloak) {
+                this.foundPlayer();
+            } else if (this.seePlayer.recall && !(simulation.cycle % this.seePlayerFreq)) { //forget over memory cycles when it can't see the player, near or far
+                this.lostPlayer();
             }
             if (!this.isStunned) {
                 if (!this.isSlowed) {
@@ -9683,17 +9697,8 @@ const spawn = {
             this.checkStatus();
         };
         me.laserArray = function (where, angle, seeRange = 1000) {
-            let best
-            best = {
-                x: null,
-                y: null,
-                dist2: Infinity,
-                who: null,
-                v1: null,
-                v2: null
-            };
             const look = { x: where.x + seeRange * Math.cos(angle), y: where.y + seeRange * Math.sin(angle) };
-            best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, m.isCloak ? [map, body] : [map, body, [playerBody, playerHead]]);
 
             if (best.who && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
                 m.immuneCycle = m.cycle + m.collisionImmuneCycles + 30; //player is immune to damage for an extra second
@@ -9724,10 +9729,9 @@ const spawn = {
         me.startingDamageReduction = me.damageReduction
         me.isInvulnerable = false
         me.frictionAir = 0.02
-        me.seeAtDistance2 = 1000000;
         me.accelMag = 0.0006 * spawn.fasterBoss(1.2)
         me.collisionFilter.mask = cat.bullet | cat.player | cat.body | cat.map
-        me.memory = Infinity;
+        me.memory = 240;
         me.seePlayerFreq = 20
         me.lockedOn = null;
         me.torqueMagnitude = 0.00024 * me.inertia * (Math.random() > 0.5 ? -1 : 1);
@@ -9814,11 +9818,9 @@ const spawn = {
             this.drawPhaseOutline()
         }
         me.laserSword = function (where, angle) {
-            let best
 
-            best = { x: null, y: null, dist2: Infinity, who: null, v1: null, v2: null };
             const look = { x: where.x + this.swordRadius * Math.cos(angle), y: where.y + this.swordRadius * Math.sin(angle) };
-            best = vertexCollision(where, look, [map, body, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, [map, body, [playerBody, playerHead]]);
 
             if (best.who && (best.who === playerBody || best.who === playerHead) && m.immuneCycle < m.cycle) {
                 m.immuneCycle = m.cycle + m.collisionImmuneCycles + 60; //player is immune to damage for an extra second
@@ -9867,10 +9869,11 @@ const spawn = {
         const seeDistance2 = 200000
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.00000175 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar1()
             this.checkStatus();
-            this.seePlayerByHistory(15);
+            this.seePlayerByLookingAtThenHistory(15);
             this.attraction();
             this.sword() //does various things depending on what stage of the sword swing
         };
@@ -9939,10 +9942,11 @@ const spawn = {
         const seeDistance2 = 200000
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.00000175 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar2()
             this.checkStatus();
-            this.seePlayerByHistory(15);
+            this.seePlayerByLookingAtThenHistory(15);
             this.attraction();
             this.sword() //does various things depending on what stage of the sword swing
         };
@@ -10009,10 +10013,11 @@ const spawn = {
         const seeDistance2 = me.swordRadiusMax * me.swordRadiusMax
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.000001 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
             this.checkStatus();
-            this.seePlayerByHistory(15);
+            this.seePlayerByLookingAtThenHistory(15);
             this.sword() //does various things depending on what stage of the sword swing
         };
         me.swordWaiting = function () {
@@ -10094,10 +10099,11 @@ const spawn = {
         const seeDistance2 = me.swordRadiusMax * me.swordRadiusMax
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.000001 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar4()
             this.checkStatus();
-            this.seePlayerByHistory(25);
+            this.seePlayerByLookingAtThenHistory(25);
             this.sword() //does various things depending on what stage of the sword swing
         };
         me.swordWaiting = function () {
@@ -10185,7 +10191,7 @@ const spawn = {
             if (this.seePlayer.recall) this.healthBar4()
             this.checkStatus();
             if (!this.isStunned) {
-                this.seePlayerByHistory(40);
+                this.seePlayerByLookingAtThenHistory(40);
                 this.attraction()
                 this.torque = 0.0000004 * this.inertia
                 const mag = 350
@@ -10204,10 +10210,8 @@ const spawn = {
 
         };
         me.laserSpear = function (where, angle, radius) {
-            let best
-            best = { x: null, y: null, dist2: Infinity, who: null, v1: null, v2: null };
             const look = { x: where.x + radius * Math.cos(angle), y: where.y + radius * Math.sin(angle) };
-            best = vertexCollision(where, look, [map, body, [playerBody, playerHead]]);
+            let best = vertexCollision(where, look, [map, body, [playerBody, playerHead]]);
 
             if (best.who && (best.who === playerBody || best.who === playerHead)) {
                 if (m.immuneCycle < m.cycle) {
@@ -11018,9 +11022,10 @@ const spawn = {
         me.frictionAir = 0.01;
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.0000005 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
             this.attraction();
             if (this.seePlayer.recall && !(simulation.cycle % this.fireFreq)) {
@@ -11047,9 +11052,10 @@ const spawn = {
         me.frictionAir = 0.02;
         spawn.shield(me, x, y);
         me.onDamage = function () { };
+        me.lookTorque = 0.000001 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar1()
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
             this.attraction();
             if (this.seePlayer.recall && !(simulation.cycle % this.fireFreq)) {
@@ -11110,9 +11116,10 @@ const spawn = {
             }
         }
         me.onDamage = function () { };
+        me.lookTorque = 0.000005 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar4()
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
             this.attraction();
             if (this.seePlayer.recall && !(simulation.cycle % this.fireFreq)) {
@@ -11305,12 +11312,12 @@ const spawn = {
         me.fireAngle = 0;
         me.accelMag = 0.0006 * simulation.accelScale;
         me.frictionAir = 0.05;
-        me.torque = 0.0001 * me.inertia * (Math.random() > 0.5 ? -1 : 1)
+        me.lookTorque = 0.0000025 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.fireDir = { x: 0, y: 0 };
         spawn.shield(me, x, y);
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar1()
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
 
             this.aimNose(() => {
@@ -11342,7 +11349,7 @@ const spawn = {
         me.fireAngle = 0;
         me.accelMag = 0.0006 * simulation.accelScale;
         me.frictionAir = 0.05;
-        me.torque = 0.0001 * me.inertia * (Math.random() > 0.5 ? -1 : 1)
+        me.lookTorque = 0.0000025 * (Math.random() > 0.5 ? -1 : 1) //how fast it turns while looking around asleep
         me.fireDir = { x: 0, y: 0 };
         me.isFreezeAuraOnDeath = true
         me.onDeath = function () {
@@ -11352,7 +11359,7 @@ const spawn = {
         spawn.shield(me, x, y);
         me.do = function () {
             if (this.seePlayer.recall) this.healthBar3()
-            this.seePlayerCheck();
+            this.seePlayerByLookingAt();
             this.checkStatus();
 
             this.aimNose(() => {
@@ -11778,6 +11785,7 @@ const spawn = {
         mobs.spawn(x, y, 15, radius, "transparent");
         let me = mob[mob.length - 1];
         me.tier = 3
+        me.memory = 240
         me.isBoss = true;
         me.eventHorizon = 0; //set in mob loop
         me.frictionStatic = 0;
@@ -12194,6 +12202,389 @@ const spawn = {
         };
     },
 
+    stentorBoss3(x, y) { //greener, splits into 8 phases with 3 fragments each, a bigger current, and moves faster
+        spawn.stentorBoss(x, y, 60, {
+            tier: 3, rgb: "30, 160, 135", dark: "5, 85, 65", stripe: "0, 72, 58", contractedRgb: "20, 118, 95",
+            damageReduction: 0.17, phases: 8, fragments: 3, vortexRange: 1260, speed: 1.3, stalkMax: 720, contractCycles: 45
+        })
+    },
+    stentorBoss(x, y, radius = 50, options = {}) { //a trumpet shaped ciliate that holds onto a surface with its foot, its cilia swirl you toward its mouth, it snaps shut when hit or touched then lunges back out, and each phase it lets go and swims to a new spot, leaving a fragment that regrows
+        const o = {
+            tier: 1,
+            rgb: "30, 145, 170", //blue-green
+            dark: "5, 75, 90", //outlines and cilia
+            stripe: "0, 65, 80",
+            contractedRgb: "20, 105, 125",
+            density: 0.003,
+            damageReduction: 0.1,
+            phases: 4, //lets go and swims somewhere new every 1/phases of health
+            fragments: 2, //shed each phase
+            vortexRange: 840,
+            speed: 1, //scales swimming, feeding, and lunging, but not the contraction
+            stalkMax: 620,
+            contractCycles: 75, //how long it stays contracted
+            ...options
+        }
+        const rgb = o.rgb
+        mobs.spawn(x, y, 0, radius, `rgb(${rgb})`);
+        const me = mob[mob.length - 1];
+        me.tier = o.tier
+        me.isBoss = true;
+        Matter.Body.setDensity(me, o.density); //normal is 0.001
+        me.damageReduction = o.damageReduction
+        me.startingDamageReduction = me.damageReduction
+        me.isInvulnerable = false
+        me.nextHealthThreshold = (o.phases - 1) / o.phases
+        me.invulnerableCount = 0
+        me.memory = Infinity //a player standing still out of sight leaves no history
+        me.frictionAir = 0.04
+        me.stroke = "transparent"
+        me.accelMag = 0.0009 * o.speed * spawn.fasterBoss(1.2) //swimming
+        me.stalkMax = o.stalkMax
+        me.stalkMin = 1.3 * radius
+        me.stalk = me.stalkMin //current stalk length
+        me.reach = me.stalkMax //how far the stalk can extend toward its aim before a wall, updated every few cycles
+        me.anchor = null //{ x, y, nx, ny } the holdfast foot and the surface's outward normal
+        me.state = "swim" //swim, feed, contract, extend
+        me.stateCycle = 1000 //starts high so it grabs the nearest surface right away
+        me.disturb = 0 //recent damage, a big enough jolt makes it contract
+        me.lastHealth = 1
+        me.farCycles = 0 //cycles the player has been out of reach of the holdfast
+        me.mouth = { x: 0, y: -1 } //direction the oral disk faces
+        me.armor = 0.35 //damage taken while contracted into a ball
+        const vortexRange = o.vortexRange
+        const food = [] //particles swirling into the mouth
+        for (let i = 0; i < 24; i++) food.push({ r: vortexRange * Math.random(), a: 2 * Math.PI * Math.random() })
+
+        me.setArmor = function () {
+            this.damageReduction = this.isPhaseInvulnerable ? 0 : this.startingDamageReduction * (this.state === "contract" ? this.armor : 1)
+        }
+        me.setState = function (state) {
+            this.state = state
+            this.stateCycle = 0
+            this.setArmor()
+        }
+        me.onDamage = function () {
+            if (this.health < this.nextHealthThreshold && this.alive) {
+                this.health = this.nextHealthThreshold - 0.01
+                this.nextHealthThreshold = Math.floor(this.health * o.phases) / o.phases
+                this.isInvulnerable = true
+                this.invulnerableCount = 200
+                this.lastHealth = this.health
+                this.anchor = null //lets go and swims somewhere new
+                this.setState("swim")
+                for (let i = 0; i < o.fragments; i++) this.shedFragment()
+            }
+        };
+        me.onHit = function () { //touching a stentor makes it contract
+            if (this.state === "feed") this.setState("contract")
+        };
+        me.onDeath = function () {
+            powerUps.spawnBossPowerUp(this.position.x, this.position.y)
+        };
+        me.shedFragment = function () { //stentor fragments regrow into small stentors
+            mobs.spawn(this.position.x, this.position.y, 0, 17, `rgb(${rgb})`);
+            const frag = mob[mob.length - 1];
+            frag.tier = this.tier
+            frag.isDropPowerUp = false
+            frag.leaveBody = false
+            frag.memory = Infinity
+            frag.stroke = "transparent"
+            frag.frictionAir = 0.03
+            frag.accelMag = 0.0005 * simulation.accelScale
+            frag.collisionFilter.mask = cat.player | cat.bullet | cat.body | cat.map //doesn't push the boss around
+            const angle = 2 * Math.PI * Math.random()
+            Matter.Body.setVelocity(frag, { x: 6 * Math.cos(angle), y: 6 * Math.sin(angle) });
+            frag.do = function () {
+                this.seePlayerByHistory(40);
+                this.checkStatus();
+                this.attraction();
+                //tail and cilia, pointed along its velocity
+                const speed = Vector.magnitude(this.velocity)
+                const dir = speed > 0.3 ? Vector.mult(this.velocity, 1 / speed) : { x: 0, y: -1 }
+                const tail = Vector.sub(this.position, Vector.mult(dir, 2.4 * this.radius))
+                ctx.beginPath()
+                ctx.moveTo(this.position.x - dir.y * this.radius * 0.8, this.position.y + dir.x * this.radius * 0.8)
+                ctx.lineTo(tail.x, tail.y)
+                ctx.lineTo(this.position.x + dir.y * this.radius * 0.8, this.position.y - dir.x * this.radius * 0.8)
+                ctx.fillStyle = `rgba(${rgb}, 0.5)`
+                ctx.fill()
+                ctx.beginPath()
+                const a0 = Math.atan2(dir.y, dir.x)
+                for (let i = 0; i < 9; i++) {
+                    const a = a0 - 1.3 + 2.6 * i / 8
+                    const len = 5 + 4 * Math.sin(simulation.cycle * 0.4 - i * 0.7)
+                    ctx.moveTo(this.position.x + this.radius * Math.cos(a), this.position.y + this.radius * Math.sin(a))
+                    ctx.lineTo(this.position.x + (this.radius + len) * Math.cos(a + 0.3), this.position.y + (this.radius + len) * Math.sin(a + 0.3))
+                }
+                ctx.lineWidth = 1.5
+                ctx.strokeStyle = `rgba(${o.dark}, 0.8)`
+                ctx.stroke()
+            }
+        }
+        me.findAnchor = function (target) { //rays out from the head, picks a surface spot it can reach that can see the target, about 2/3 of a stalk length away from it
+            let best = null
+            const rays = 24
+            for (let i = 0; i < rays; i++) {
+                const a = 2 * Math.PI * i / rays + 0.13
+                const end = { x: this.position.x + this.stalkMax * Math.cos(a), y: this.position.y + this.stalkMax * Math.sin(a) }
+                const hit = vertexCollision(this.position, end, [map])
+                if (!hit.who) continue
+                let normal = hit.v1 && hit.v2 ? Vector.normalise({ x: -(hit.v2.y - hit.v1.y), y: hit.v2.x - hit.v1.x }) : { x: -Math.cos(a), y: -Math.sin(a) }
+                if (Vector.dot(normal, Vector.sub(this.position, hit)) < 0) normal = Vector.neg(normal)
+                const out = { x: hit.x + 15 * normal.x, y: hit.y + 15 * normal.y }
+                let score = 0.3 * Math.sqrt(hit.dist2)
+                if (target) {
+                    score += Math.abs(Vector.magnitude(Vector.sub(target, out)) - 0.65 * this.stalkMax)
+                    if (Matter.Query.ray(map, out, target).length) score += 3000
+                }
+                if (!best || score < best.score) best = { x: hit.x, y: hit.y, nx: normal.x, ny: normal.y, score }
+            }
+            return best
+        }
+        me.attach = function (where) {
+            this.anchor = where
+            this.stalk = Math.max(this.stalkMin, Vector.magnitude(Vector.sub(this.position, where)))
+            this.reach = this.stalkMax
+            this.farCycles = 0
+            this.setState("extend")
+        }
+        me.swim = function () {
+            const target = this.seePlayer.recall ? this.seePlayer.position : null
+            const accel = this.accelMag * (this.isPhaseInvulnerable ? 1.5 : 1)
+            if (target) {
+                const dir = Vector.normalise(Vector.sub(target, this.position))
+                const wobble = 0.6 * Math.sin(simulation.cycle * 0.12) //helical swimming
+                this.force.x += (dir.x - wobble * dir.y) * accel * this.mass
+                this.force.y += (dir.y + wobble * dir.x) * accel * this.mass
+            } else {
+                this.force.y += 0.0002 * this.mass //sinks until it finds somewhere to hold on
+            }
+            const speed = Vector.magnitude(this.velocity)
+            if (speed > 0.5) this.turnMouth(Vector.mult(this.velocity, 1 / speed), 0.1)
+            //look for somewhere to hold on
+            if (!this.isPhaseInvulnerable && this.stateCycle > 40 && !(this.stateCycle % 15)) {
+                const where = this.findAnchor(target)
+                if (where && (where.score < 3000 || this.stateCycle > 600 || !target)) this.attach(where)
+            }
+        }
+        me.turnMouth = function (dir, rate) {
+            this.mouth = Vector.normalise({ x: (1 - rate) * this.mouth.x + rate * dir.x, y: (1 - rate) * this.mouth.y + rate * dir.y })
+        }
+        me.hold = function () { //moves the head on its stalk
+            const foot = this.anchor
+            const normal = { x: foot.nx, y: foot.ny }
+            const target = this.seePlayer.recall ? this.seePlayer.position : null
+            const footOut = { x: foot.x + 10 * normal.x, y: foot.y + 10 * normal.y }
+            //aim at the player, but stay on the open side of the surface
+            const targetDist = target ? Vector.magnitude(Vector.sub(target, foot)) : this.stalkMax
+            let aim = target ? Vector.normalise(Vector.sub(target, foot)) : normal
+            const lean = Vector.dot(aim, normal)
+            if (lean < 0.08) aim = Vector.normalise(Vector.add(aim, Vector.mult(normal, 2 * (0.08 - lean)))) //can curve down low to reach a player on the ground, but not into the surface
+            if (!(simulation.cycle % 8)) {
+                const hit = vertexCollision(footOut, Vector.add(footOut, Vector.mult(aim, this.stalkMax)), [map])
+                this.reach = hit.who ? Math.max(this.stalkMin, Math.sqrt(hit.dist2) - 1.1 * this.radius) : this.stalkMax
+                //let go if the player stays out of reach
+                if (this.state === "feed" && target) {
+                    const far = Vector.magnitude(Vector.sub(target, foot)) > this.stalkMax + 450 || Matter.Query.ray(map, footOut, target).length
+                    this.farCycles = far ? this.farCycles + 8 : 0
+                    if (this.farCycles > 150) {
+                        this.anchor = null
+                        this.setState("swim")
+                        this.stateCycle = 40
+                        return
+                    }
+                }
+            }
+            //feeding hovers back from the player so the current can pull them in, the lunge goes right through them
+            const along = this.state === "extend" ? targetDist + this.radius : Math.max(this.stalkMin, targetDist - 220)
+            const length = this.state === "contract" ? this.stalkMin : Math.min(this.stalk, this.reach, along)
+            const goal = Vector.add(foot, Vector.mult(this.state === "contract" ? normal : aim, length))
+            const accel = { feed: 0.0006 * o.speed, extend: 0.002 * o.speed, contract: 0.0022 }[this.state] //fast moves stay under about 20px per cycle so it can't pass through thin platforms
+            const toGoal = Vector.sub(goal, this.position)
+            const dist = Vector.magnitude(toGoal)
+            if (dist > 1) {
+                const mag = Math.min(accel, accel * dist / 80) * this.mass / dist
+                this.force.x += toGoal.x * mag
+                this.force.y += toGoal.y * mag
+            }
+            //the stalk is a leash
+            const fromFoot = Vector.sub(this.position, foot)
+            const stretch = Vector.magnitude(fromFoot) - this.stalk - 20
+            if (stretch > 0) {
+                const mag = Math.min(0.0015, 0.00002 * stretch) * this.mass / (stretch + this.stalk + 20)
+                this.force.x -= fromFoot.x * mag
+                this.force.y -= fromFoot.y * mag
+            }
+            //mouth faces out along the stalk, turned toward the player
+            const stalkDir = Vector.normalise(fromFoot)
+            const look = target ? Vector.normalise(Vector.add(stalkDir, Vector.normalise(Vector.sub(target, this.position)))) : stalkDir
+            this.turnMouth(look, 0.08)
+        }
+        me.vortex = function () { //the cilia's feeding current pulls the player and blocks into the mouth
+            const mouth = { x: this.position.x + this.radius * this.mouth.x, y: this.position.y + this.radius * this.mouth.y }
+            const pull = (who, accel, antiGravity, swirl) => {
+                const sub = Vector.sub(mouth, who.position)
+                const dist = Vector.magnitude(sub)
+                if (dist > vortexRange || dist < 1 || Vector.dot(sub, this.mouth) > 0.3 * dist) return //only in front of the mouth
+                const close = dist < 0.8 * vortexRange ? 3 - 2.5 * dist / vortexRange : 1 //up to 3x stronger, ramping up from 4/5 of the range in to the mouth
+                const f = close * (1 - dist / vortexRange) * accel * who.mass / dist
+                who.force.x += (sub.x - swirl * sub.y) * f //in and around
+                who.force.y += (sub.y + swirl * sub.x) * f - antiGravity * (1 - dist / vortexRange) * simulation.g * who.mass
+            }
+            if (!m.isCloak) pull(player, 0.00264 * (m.onGround ? 1.8 : 1), 0, 0.15)
+            for (let i = 0, len = body.length; i < len; i++) {
+                if (!body[i].isStatic && !body[i].isNotHoldable) pull(body[i], 0.00088, 0.7, 0.5)
+            }
+            //swirling food particles
+            const mouthAngle = Math.atan2(this.mouth.y, this.mouth.x)
+            ctx.beginPath()
+            for (let i = 0; i < food.length; i++) {
+                const p = food[i]
+                p.r -= 2 + 900 / (p.r + 60)
+                p.a += 3 / (p.r + 40)
+                if (p.r < 0.3 * this.radius) {
+                    p.r = vortexRange * (0.5 + 0.5 * Math.random())
+                    p.a = mouthAngle + 2.6 * (Math.random() - 0.5)
+                }
+                const x = mouth.x + p.r * Math.cos(p.a)
+                const y = mouth.y + p.r * Math.sin(p.a)
+                const size = 2.5 + 2.5 * p.r / vortexRange //shrinks as it nears the mouth
+                ctx.moveTo(x + size, y)
+                ctx.arc(x, y, size, 0, 2 * Math.PI)
+            }
+            ctx.fillStyle = `rgba(${o.dark}, 0.75)`
+            ctx.fill()
+        }
+        me.stalkSamples = [] //points along the stalk's center and its half width, updated in drawCell
+        me.stalkDrag = function () { //the stalk is sticky, walking through it slows the player down a lot and drains energy
+            const samples = this.stalkSamples
+            for (let i = 0, len = samples.length - 3; i < len; i++) { //skips the end in the head
+                const dx = player.position.x - samples[i].x
+                const dy = player.position.y - samples[i].y
+                const reach = samples[i].w + 25 //about the player's half width
+                if (dx * dx + dy * dy < reach * reach) {
+                    Matter.Body.setVelocity(player, { x: 0.6 * player.velocity.x, y: 0.6 * player.velocity.y })
+                    if (m.energy > 0) m.energy = Math.max(0, m.energy - 0.005) //and drains energy
+                    return
+                }
+            }
+        }
+        me.drawCell = function () {
+            const H = this.position
+            const contracted = this.state === "contract" ? Math.min(1, this.stateCycle / 8) : 0
+            let B, C //stalk base and curve control point
+            if (this.anchor) {
+                const n = { x: this.anchor.nx, y: this.anchor.ny }
+                B = this.anchor
+                C = Vector.add(B, Vector.mult(n, 0.5 * Vector.magnitude(Vector.sub(H, B))))
+            } else { //swimming, the trumpet trails behind
+                const wag = 0.4 * Math.sin(simulation.cycle * 0.12)
+                const back = Vector.mult(this.mouth, -this.radius)
+                B = Vector.add(H, Vector.mult(Vector.rotate(back, -wag), 2.4))
+                C = Vector.add(H, Vector.mult(Vector.rotate(back, wag), 1.2))
+            }
+            //trumpet outline
+            const steps = 14
+            const left = [], right = [], mid = []
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps
+                const u = 1 - t
+                const p = { x: u * u * B.x + 2 * u * t * C.x + t * t * H.x, y: u * u * B.y + 2 * u * t * C.y + t * t * H.y }
+                const tan = Vector.normalise({ x: 2 * u * (C.x - B.x) + 2 * t * (H.x - C.x), y: 2 * u * (C.y - B.y) + 2 * t * (H.y - C.y) })
+                const w = Math.min(0.95 * this.radius, (6 + (0.95 * this.radius - 6) * Math.pow(t, 2.5)) * (1 + 0.6 * contracted)) //fattens when contracted
+                const perp = { x: -tan.y, y: tan.x }
+                mid.push({ p, perp, w, t })
+                this.stalkSamples[i] = { x: p.x, y: p.y, w }
+                left.push({ x: p.x + w * perp.x, y: p.y + w * perp.y })
+                right.push({ x: p.x - w * perp.x, y: p.y - w * perp.y })
+            }
+            ctx.beginPath()
+            ctx.moveTo(left[0].x, left[0].y)
+            for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y)
+            for (let i = right.length - 1; i > -1; i--) ctx.lineTo(right[i].x, right[i].y)
+            ctx.closePath()
+            ctx.fillStyle = `rgba(${rgb}, ${0.5 + 0.3 * contracted})`
+            ctx.fill()
+            ctx.lineWidth = 2
+            ctx.strokeStyle = `rgba(${o.dark}, 0.6)`
+            ctx.stroke()
+            //pigment stripes
+            ctx.beginPath()
+            for (const s of [-0.55, 0, 0.55]) {
+                for (let i = 2; i < mid.length; i++) {
+                    const x = mid[i].p.x + s * mid[i].w * mid[i].perp.x
+                    const y = mid[i].p.y + s * mid[i].w * mid[i].perp.y
+                    i === 2 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+                }
+            }
+            ctx.lineWidth = 1.5
+            ctx.strokeStyle = `rgba(${o.stripe}, 0.35)`
+            ctx.stroke()
+            //holdfast
+            if (this.anchor) {
+                ctx.beginPath()
+                ctx.arc(B.x, B.y, 9, 0, 2 * Math.PI)
+                ctx.fillStyle = `rgba(${o.dark}, 0.7)`
+                ctx.fill()
+            }
+            //head
+            ctx.beginPath()
+            ctx.arc(H.x, H.y, this.radius, 0, 2 * Math.PI)
+            ctx.fillStyle = contracted ? `rgb(${o.contractedRgb})` : `rgb(${rgb})`
+            ctx.fill()
+            //oral disk, a crown of membranelles beating in metachronal waves
+            const a0 = Math.atan2(this.mouth.y, this.mouth.x)
+            const beat = this.state === "feed" ? 1 : this.state === "swim" ? 0.7 : 0.3
+            ctx.beginPath()
+            for (let i = 0; i < 28; i++) {
+                const a = a0 - 1.9 + 3.8 * i / 27
+                const len = beat * (16.5 + 12 * Math.sin(simulation.cycle * 0.35 - i * 0.6)) * (1 - 0.8 * contracted)
+                const bend = 0.5 * Math.sin(simulation.cycle * 0.35 - i * 0.6 + 1)
+                ctx.moveTo(H.x + this.radius * Math.cos(a), H.y + this.radius * Math.sin(a))
+                ctx.lineTo(H.x + (this.radius + len) * Math.cos(a + 0.15 * bend), H.y + (this.radius + len) * Math.sin(a + 0.15 * bend))
+            }
+            ctx.lineWidth = 2
+            ctx.strokeStyle = `rgba(${o.dark}, 0.8)`
+            ctx.stroke()
+        }
+        me.do = function () {
+            this.seePlayerByHistory(60);
+            this.checkStatus();
+            this.stateCycle++
+            //a jolt of damage makes it contract
+            this.disturb = 0.97 * this.disturb + Math.max(0, this.lastHealth - this.health)
+            this.lastHealth = this.health
+            if (this.disturb > 0.035 && this.state === "feed") this.setState("contract")
+
+            if (this.anchor) {
+                if (this.state === "feed") {
+                    if (this.stateCycle > 300) this.setState("contract")
+                } else if (this.state === "contract") {
+                    this.stalk = Math.max(this.stalkMin, this.stalk - 30)
+                    if (this.stateCycle > o.contractCycles) this.setState("extend")
+                } else if (this.state === "extend") {
+                    this.stalk = Math.min(this.stalkMax, this.stalk + 12)
+                    if (this.stalk === this.stalkMax && this.stateCycle > 30) this.setState("feed")
+                }
+                if (this.anchor) this.hold()
+            } else {
+                this.swim()
+            }
+            this.drawCell()
+            this.stalkDrag()
+            if (this.state === "feed" && !this.isStunned) this.vortex()
+            if (this.seePlayer.recall) this["healthBar" + o.tier]()
+            if (this.isPhaseInvulnerable) {
+                this.invulnerableCount--
+                if (this.invulnerableCount < 0) {
+                    this.isInvulnerable = false
+                    this.setArmor()
+                }
+                this.drawPhaseOutline()
+            }
+        };
+    },
     snakeSpitBoss(x, y, radius = 50) {
         let angle = Math.PI
         const tailRadius = 300
@@ -12355,7 +12746,7 @@ const spawn = {
         Matter.Body.setDensity(me, 0.0001); //normal is 0.001
 
         // me.accelMag = 0.0007 * simulation.accelScale;
-        me.leaveBody = Math.random() < 0.33 ? true : false;
+        me.leaveBody = Math.random() < 0.33;
         me.isDropPowerUp = false;
         me.frictionAir = 0;
         me.isSnakeTail = true;
@@ -12643,7 +13034,7 @@ const spawn = {
             this.checkStatus();
         };
     },
-    spawnOrbitals(who, radius, chance = Math.min(0.25 + simulation.difficulty * 0.005)) {
+    spawnOrbitals(who, radius, chance = 0.25 + simulation.difficulty * 0.005) {
         if (Math.random() < chance) {
             const len = Math.floor(Math.min(15, 3 + Math.sqrt(simulation.difficulty)))
             const speed = (0.003 + 0.004 * Math.random() + 0.002 * Math.sqrt(simulation.difficulty)) * ((Math.random() < 0.5) ? 1 : -1)
