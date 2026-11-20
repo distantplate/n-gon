@@ -28,6 +28,26 @@ const saveGame = {
         save.techCounts = renameKeys(save.techCounts)
         if (Array.isArray(save.techOrder)) save.techOrder = save.techOrder.map(rename)
         save.state.techEntries = renameKeys(save.state.techEntries)
+        const tech = save.state.tech
+        if (tech && typeof tech === "object") {
+            for (const [old, name] of Object.entries(saveGame.renamedTechFlags)) {
+                if (Object.hasOwn(tech, old)) {
+                    if (!Object.hasOwn(tech, name)) tech[name] = tech[old]
+                    delete tech[old]
+                }
+            }
+        }
+    },
+    renamedTechFlags: { //old tech.* name: new name, so older saves keep the values of renamed flags
+        isGrabEnergy: "grabEnergyCount", isDamageCooldownTime: "damageCooldownTime", isRewindBot: "rewindBotCount",
+        isOffGroundDamage: "offGroundDamageCount", isFarAwayDmg: "farAwayDmgCount", isDamageFromBulletCount: "damageFromBulletCount",
+        isEnergyLoss: "energyLossCount", isLowEnergyDamage: "lowEnergyDamageCount", isAcidDmg: "acidDmgCount",
+        isMaxHealthDamage: "maxHealthDamageCount", isLowHealthDmg: "lowHealthDmgCount", isForeverDrones: "foreverDroneCount",
+        isPlasmaRange: "plasmaRangeScale",
+        collidePowerUps: "isCollidePowerUps", noDefenseSettingDamage: "isNoDefenseSettingDamage", needleTunnel: "isNeedleTunnel",
+        nailInstantFireRate: "isNailInstantFireRate", nailRecoil: "isNailRecoil", superBallDelay: "isSuperBallDelay",
+        oneSuperBall: "isOneSuperBall", beamCollimator: "isBeamCollimator", energyDefense: "isEnergyDefense",
+        tooManyTechChoices: "isTooManyTechChoices",
     },
     simulationKeys: ["difficultyOptions", "difficultyMode", "difficulty", "accelScale", "CDScale", "healScale", "molecularMode", "isCheating", "isHorizontalFlipped", "cycle"],
 
@@ -161,7 +181,7 @@ const saveGame = {
         if (tech.isEigenstate && runtime?.eigen) saveGame.assign(m.eigen, runtime.eigen, ["block", "keyListener"])
         if (m.skin) {
             //Older saves still have the absolute defense multiplier, so synchronize its bookkeeping flag.
-            m.skin.isPolarDefense = runtime?.polarDefense ?? !!(tech.isHyperpolarisation && tech.isDamageCooldown && m.lastKillCycle + tech.isDamageCooldownTime > m.cycle)
+            m.skin.isPolarDefense = runtime?.polarDefense ?? !!(tech.isHyperpolarisation && tech.isDamageCooldown && m.lastKillCycle + tech.damageCooldownTime > m.cycle)
         }
         if (m.plasmaBall && runtime?.plasmaBall) {
             const radius = runtime.plasmaBall.circleRadius
@@ -296,21 +316,43 @@ const saveGame = {
     // loading a save
     // ****************************************************************************************************
     isValid(save) {
-        return save && typeof save === "object" && save.v === 1 && save.state && save.state.level && typeof save.state.level.levelsCleared === "number" && Array.isArray(save.state.level.levels)
+        const route = save?.state?.level
+        const record = value => value && typeof value === "object" && !Array.isArray(value)
+        return save?.v === saveGame.version && record(save.state) && record(route) &&
+            Number.isSafeInteger(route.levelsCleared) && route.levelsCleared >= 0 &&
+            Array.isArray(route.levels) && route.levels.every(name => typeof name === "string" && name.length > 0) &&
+            Number.isSafeInteger(route.onLevel) && route.onLevel >= 0 && route.onLevel < route.levels.length &&
+            Array.isArray(save.guns) && save.guns.every(name => typeof name === "string") &&
+            record(save.techCounts) && Object.values(save.techCounts).every(count => Number.isSafeInteger(count) && count >= 0) &&
+            ["guns", "fields", "techEntries"].every(group => record(save.state[group])) &&
+            Object.values(save.state).every(record) && (save.simulation === undefined || record(save.simulation))
     },
     async load(save) {
         if (!saveGame.isValid(save)) {
             alert("That isn't a valid n-gon checkpoint.")
             return
         }
-        if (!simulation.onTitlePage) return
+        if (!simulation.onTitlePage || simulation.isStartingGame) return
+        const route = save.state.level.levels
+        const available = name => [level.maps, level.localMaps, typeof moreLevels === "undefined" ? null : moreLevels]
+            .some(maps => maps && Object.hasOwn(maps, name) && typeof maps[name] === "function")
+        if (route.some(name => !available(name) && (level.communityLevels?.includes(name) || level.trainingLevels?.includes(name)))) {
+            try {
+                await level.loadMoreLevels()
+            } catch (error) {
+                alert("Couldn't load the additional maps required by this checkpoint.")
+                return
+            }
+        }
+        if (!simulation.onTitlePage || simulation.isStartingGame) return
+        const missingMaps = [...new Set(route.filter(name => !available(name)))]
+        if (missingMaps.length) {
+            alert(`This checkpoint needs these maps: ${missingMaps.join(", ")}. Restore them before continuing.`)
+            return
+        }
         saveGame.renameTech(save)
         const missing = []
-        //community levels in the saved level order need level2.js, which startGame loads when community maps are on
-        const communitySetting = simulation.isCommunityMaps
-        if (save.state.level.levels.some(name => !(name in level.maps))) simulation.isCommunityMaps = true
         await simulation.startGame()
-        simulation.isCommunityMaps = communitySetting //keep the player's setting for later runs
         if (simulation.onTitlePage) return //startGame failed
 
         //side effects of rebuilding tech the normal way
@@ -405,7 +447,8 @@ const saveGame = {
         m.displayHealth()
         saveGame.latest = save
         saveGame.isResuming = true //level.start skips run stats that were already counted when this level first started
-        saveGame.pendingMessage = missing.length ? `<em>//checkpoint loaded, but these no longer exist: ${missing.join(", ")}</em>` : `<em>//checkpoint loaded</em>`
+        const missingText = missing.join(", ").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        saveGame.pendingMessage = missing.length ? `<em>//checkpoint loaded, but these no longer exist: ${missingText}</em>` : `<em>//checkpoint loaded</em>`
         //startGame already set simulation.clearNow, so the next cycle clears the map and runs level.start for the saved level
     },
     continueRun() {

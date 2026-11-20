@@ -44,7 +44,8 @@ portal: +1 energy after going through a portal
         "orb-field": () => `// gives you a choice between 2 <strong class="energy">fields</strong>` + spawnLine(0.0016, " if the heal and gun rolls did not spawn a drop"),
         "orb-gun": () => `// gives you a choice between 2 <strong class="color-g">guns</strong>` + spawnLine(0.0007 * (3 - b.inventory.length), " if the heal roll did not spawn a drop") + `<br><br>// 3% chance per boss tech/gun reward roll`,
         "orb-tech": `// gives you a choice between 3 <strong class="color-var">tech</strong><br><br>// 97% chance per boss tech/gun reward roll`,
-        "orb-field-tech": `// <strong class="energy">field tech</strong><br>upgrade your field`,
+        "orb-instant": `// <strong class="color-var">instant tech</strong> do their thing once when you take them<br><br>// they don't count toward your total tech`,
+        "orb-field-tech":`// <strong class="energy">field tech</strong><br>upgrade your field`,
         "orb-gun-tech": `// <strong class="color-g">gun tech</strong><br>upgrade your guns`,
         "orb-skin": `// a <strong>skin</strong> changes the player appearance and gives an extra strong upgrade<br><br>// you can only have one`,
         "orb-skin-upgrade": `// <strong>skin tech</strong><br>upgrades your skin`,
@@ -57,7 +58,7 @@ portal: +1 energy after going through a portal
         "orb-boost": () => `// temporarily increases damage` + spawnLine(tech.isBoostPowerUps ? 0.14 * dropScale() : 0, " if the heal, gun, field, and ammo rolls did not spawn a drop"),
         "dark-matter": `// <strong class="color-dark-matter">dark matter</strong> follows you and reduces damage taken when you are inside it
         <br><br>// <em>dark matter is hypothetical invisible matter inferred from unexplained gravity</em>`,
-        "alternate-reality": `// entering an <strong class="alt">alternate reality</strong> randomizes guns, ammo, field, tech, health, research, and coupling
+        "alternate-reality": `// entering an <strong class="alt" data-text="alternate reality">alternate reality</strong> randomizes guns, ammo, field, tech, health, research, and coupling
         <br><br>// qubits are kept, but more than 5 qubits are randomized
         <br><br>// <em>in the many-worlds interpretation, quantum events form non-interacting branches with internally consistent histories</em>`,
         "fire-rate": `// <span class="color-fire-rate">fire rate</span> controls how often a weapon fires (doesn't affect bots)<br><br>// higher <span class="color-fire-rate">fire rate</span> means less delay between shots`,
