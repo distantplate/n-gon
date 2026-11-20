@@ -6330,17 +6330,29 @@ const m = {
                                 ctx.lineDashOffset = 900 * Math.random();
                                 ctx.setLineDash([50 + 120 * Math.random(), 50 * Math.random()]);
                             }
-                            for (let i = 0; i < targets.length - 1; i++) {//each target shoots a beam to each other target, but no repeats
+                            for (let i = 0; i < targets.length; i++) {//each target shoots a beam to each other target, but no repeats
                                 if (targets.length < 2) {break;}
+                                const loc1 = targets[i].position;
+                                let loc2 = loc1;
+                                let beams = [];
+                                let distance = -1;
                                 for (let j = i + 1; j < targets.length; j++) {
-                                    const loc1 = targets[i].position;
-                                    const loc2 = targets[j].position;
+                                    let loc3 = targets[j].position;
+                                    let d = [Math.abs(loc1.x - loc3.x), Math.abs(loc1.y - loc3.y)];
+                                    if (d[0] <= 450 && d[1] <= 450) {beams.push(loc3);}
+                                    else if (distance == -1) {loc2 = loc3; distance = d[0] + d[1];}
+                                    else if (d[0] + d[1] < distance) {loc2 = loc3; distance = d[0] + d[1];}
+                                }
+                                if (loc2 !== loc1) {beams.push(loc2);}
+                                for (let a in beams) {
                                     ctx.beginPath();
                                     ctx.moveTo(loc1.x,loc1.y);
-                                    ctx.lineTo(loc2.x,loc2.y);
+                                    ctx.lineTo(beams[a].x,beams[a].y);
                                     ctx.stroke();
                                 }
                                 if (targets[i].alive && !targets[i].isInvulnerable) {
+                                    this.electronvolt(targets[i]);
+                                    if (tech.isPlasmaFreeze) {b.coldPlasma(targets[i]);}
                                     targets[i].damage(0.1 * amp);
                                 }
                             }
