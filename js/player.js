@@ -6238,6 +6238,39 @@ const m = {
                                 }
                             }
                         },
+                        cascade() {
+                            let targets = [];
+                            let amp = 0.8;
+                            for (let i = 0; i < mob.length; i++) { //list of valid targets
+                                if (!mob[i].alive || mob[i].isShielded || (mob[i].isBadTarget && !mob[i].isMobBullet) || mob[i].isInvulnerable) {continue;}
+                                const loc = mob[i].position;
+                                if (Math.abs(this.position.x - loc.x) > 900  + this.effectRadius) {continue;}
+                                if (Math.abs(this.position.y - loc.y) > 900  + this.effectRadius) {continue;}
+                                targets.push(mob[i]);
+                                amp += 0.1;//increase damage by 10% per target above 2
+                            }
+                            ctx.strokeStyle = m.fieldUpgrades[5].isHighPower ? "rgb(60,0,255)" : "rgb(255, 0, 255)";
+                            ctx.lineWidth = 5;
+                            if (targets.length < 16) {//make beams look interesting, disable if too many targets
+                                ctx.lineDashOffset = 900 * Math.random();
+                                ctx.setLineDash([50 + 120 * Math.random(), 50 * Math.random()]);
+                            }
+                            for (let i = 0; i < targets.length - 1; i++) {//each target shoots a beam to each other target, but no repeats
+                                if (targets.length < 2) {break;}
+                                for (let j = i + 1; j < targets.length; j++) {
+                                    const loc1 = targets[i].position;
+                                    const loc2 = targets[j].position;
+                                    ctx.beginPath();
+                                    ctx.moveTo(loc1.x,loc1.y);
+                                    ctx.lineTo(loc2.x,loc2.y);
+                                    ctx.stroke();
+                                }
+                                if (targets[i].alive && !targets[i].isInvulnerable) {
+                                    targets[i].damage(0.1 * amp);
+                                }
+                            }
+                            if (targets.length < 16) ctx.setLineDash([]);//reset beams if neccessary
+                        },
                         isSolitonInReach() { //soliton tech: hold the ring until a mob is close enough for it to reach, returns that mob or null
                             const end = 1.4 * this.effectRadius + 40
                             const band = this.ringWidth * this.effectRadius
@@ -6465,6 +6498,7 @@ const m = {
                                         }
                                     }
                                 }
+                                if (m.crouch && tech.isPlasmaCascade) {this.cascade();}
                                 let visible = null //arc targets the ball can see
                                 for (let i = 0; i < arcList.length; i++) {
                                     if (tech.plasmaDischarge > Math.random()) {

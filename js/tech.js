@@ -12286,6 +12286,29 @@ const tech = {
         }
     },
     {
+        name: "resonance cascade",
+        descriptionFunction() {
+                return `prepare for <strong class='color-plasma' data-help='plasma'>unforseen consequences</strong><br><em>still experimental, use at your own risk</em><span style ="float: right;"><span class="expend" data-help="expend">expend</span> ${powerUps.orb.research(2)}</span>` 
+        },
+        isFieldTech: true,
+        maxCount: 1,
+        count: 0,
+        frequency: 2,
+        frequencyDefault: 2,
+        allowed() {
+            return tech.isPlasmaBall && (build.isExperimentSelection || powerUps.research.count > 1)
+        },
+        requires: "plasma ball",
+        effect() {
+            tech.isPlasmaCascade = true;
+            powerUps.research.expend(2)
+        },
+        remove() {
+            tech.isPlasmaCascade = false;
+            if (this.count > 0) powerUps.research.changeRerolls(this.count * 2)
+        }
+    },
+    {
         name: "cyclotron",
         description: "<strong class='color-plasma' data-help='plasma'>plasma</strong> ball curves towards your mouse<br><strong>2x</strong> <strong class='color-plasma' data-help='plasma'>plasma</strong> ball <strong class='color-d' data-help='damage'>damage</strong> after you <strong>release</strong> it.",
         isFieldTech: true,
