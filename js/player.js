@@ -6313,18 +6313,24 @@ const m = {
                                 }
                             }
                         },
+                        overload: 0,
                         cascade() {
+                            if (m.energy <= this.drain) {return}
                             let targets = [];
                             let amp = 0.8;
+                            let cvals = [255,255 * this.overload / 3000,255];
+                            if (m.fieldUpgrades[5].isHighPower) {cvals = [cvals[1],255,cvals[1]];}
                             for (let i = 0; i < mob.length; i++) { //list of valid targets
-                                if (!mob[i].alive || mob[i].isShielded || (mob[i].isBadTarget && !mob[i].isMobBullet) || mob[i].isInvulnerable) {continue;}
+                                if (!mob[i].alive || (mob[i].isBadTarget && !mob[i].isMobBullet) || mob[i].isInvulnerable) {continue;}
+                                if (mob[i].shield && this.overload >= 3000) {mob[i].damage(Infinity); continue;}
+                                if (mob[i].isShielded && this.overload < 3000) {continue;}
                                 const loc = mob[i].position;
                                 if (Math.abs(this.position.x - loc.x) > 900  + this.effectRadius) {continue;}
                                 if (Math.abs(this.position.y - loc.y) > 900  + this.effectRadius) {continue;}
                                 targets.push(mob[i]);
                                 amp += 0.1;//increase damage by 10% per target above 2
                             }
-                            ctx.strokeStyle = m.fieldUpgrades[5].isHighPower ? "rgb(60,0,255)" : "rgb(255, 0, 255)";
+                            ctx.strokeStyle = "rgb("+cvals[0]+","+cvals[1]+","+cvals[2]+")";
                             ctx.lineWidth = 5;
                             if (targets.length < 16) {//make beams look interesting, disable if too many targets
                                 ctx.lineDashOffset = 900 * Math.random();
@@ -6344,6 +6350,12 @@ const m = {
                                     else if (d[0] + d[1] < distance) {loc2 = loc3; distance = d[0] + d[1];}
                                 }
                                 if (loc2 !== loc1) {beams.push(loc2);}
+                                if (tech.plasmaBotCount > 0) {
+                                    for (var j = 0; j < bullet.length; j++) {
+                                        if (bullet[j].botType !== "plasma") continue;
+                                        beams.push(bullet[j].position);
+                                    }
+                                }
                                 for (let a in beams) {
                                     ctx.beginPath();
                                     ctx.moveTo(loc1.x,loc1.y);
@@ -6351,12 +6363,28 @@ const m = {
                                     ctx.stroke();
                                 }
                                 if (targets[i].alive && !targets[i].isInvulnerable) {
+                                    if (targets[i].health > 0.25 && this.overload >= 3000) {
+                                        targets[i].health = 0.25;
+                                        if (tech.isIceKill) {targets[i].damage(Infinity);}//having to manually put this here
+                                        simulation.drawList.push({
+                                            x: loc1.x,
+                                            y: loc1.y,
+                                            radius: targets[i].radius * 3,
+                                            color: "rgb(255,255,255)",
+                                            time: 8
+                                        });
+                                    }
+                                    targets[i].damage(0.1 * amp);
                                     this.electronvolt(targets[i]);
                                     if (tech.isPlasmaFreeze) {b.coldPlasma(targets[i]);}
-                                    targets[i].damage(0.1 * amp);
                                 }
                             }
                             if (targets.length < 16) ctx.setLineDash([]);//reset beams if neccessary
+                            if (this.overload > 3000) {this.explode(); this.reset(); m.energy = 0; return;}//gotta put it here otherwise it won't trigger
+                            if (targets.length > 1) {
+                                this.overload += targets.length;
+                                if (tech.plasmaBotCount > 0) {this.overload += 5;}
+                            }
                         },
                         isSolitonInReach() { //soliton tech: hold the ring until a mob is close enough for it to reach, returns that mob or null
                             const end = 1.4 * this.effectRadius + 40
@@ -6496,6 +6524,7 @@ const m = {
                             this.isOn = false
                             this.contractToggle = false
                             this.supercharge = 1
+                            this.overload = 0
                             this.pressed = 0
                             this.squeezed = 0
                             this.resetRing(2 * this.circleRadius)
@@ -6586,6 +6615,8 @@ const m = {
                                     }
                                 }
                                 if (m.crouch && tech.isPlasmaCascade) {this.cascade();}
+                                if (this.overload > 0) {this.overload -= 10;}
+                                if (this.overload < 0) {this.overload = 0;}
                                 let visible = null //arc targets the ball can see
                                 for (let i = 0; i < arcList.length; i++) {
                                     if (tech.plasmaDischarge > Math.random()) {
